@@ -1,0 +1,162 @@
+load ibos.maude
+
+mod IBOS-PRED-INIT is
+  pr KERNEL .
+
+  op init : Sys -> [Bool] .
+
+  eq [init]:
+     init(
+       { < 0 : nic | in(mtLL),out(mtLL) > 
+         < id(1) : kernel | 
+           msgPolicy(
+	     policy(id(3), id(4), MSG-FETCH-URL), 
+	     policy(id(3), id(4), MSG-FETCH-URL-ABORT),
+	     policy(id(3), id(6), MSG-DOM-COOKIE-SET),
+	     policy(id(3), id(6), MSG-DOM-COOKIE-GET),
+	     policy(id(3), id(11), MSG-UI-MSG),
+	     policy(id(3), id(14), MSG-WRITE-FILE),
+	     policy(id(3), id(14), MSG-READ-FILE),
+	     policy(id(4), id(3), MSG-RETURN-URL),
+	     policy(id(4), id(3), MSG-RETURN-URL-METADATA),
+	     policy(id(4), id(6), MSG-COOKIE-SET),
+	     policy(id(4), id(6), MSG-COOKIE-GET),
+	     policy(id(6), id(3), MSG-DOM-COOKIE-GET-RETURN),
+	     policy(id(6), id(4), MSG-COOKIE-GET-RETURN),
+	     policy(id(11), id(3), MSG-NEW-URL),
+	     policy(id(11), id(3), MSG-SWITCH-TAB),
+	     policy(id(11), id(3), MSG-WEBAPP-MSG),
+	     policy(id(14), id(3), MSG-READ-FILE-RETURN),
+	     policy(id(14), id(11), MSG-DOWNLOAD-INFO)),
+    	   nextNetworkProc(256),
+	   handledCurrently(none),
+	   weblabels(mtWPIS),
+	   networklabels(mtNPIS),
+	   displayedTopBar(about-blank) > 
+         < id(2) : proc | nextWAN(1024) > < id(2) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(5) : proc | none > < id(5) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(6) : proc | none > < id(6) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(7) : proc | none > < id(7) : pipe | fromKernel(mt), toKernel(mt) > 
+       	 < id(8) : proc | none > < id(8) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(9) : proc | none > < id(9) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(10) : proc | none > < id(10) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(11) : proc | none > < id(11) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(12) : proc | none > < id(12) : pipe | fromKernel(mt),toKernel(mt) >
+       	 < id(13) : proc | none > < id(13) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(15) : proc | activeWebapp(id(0)),displayedContent(about-blank) >
+       })
+   = true .
+
+  op init : -> Sys .
+  eq init
+   = { < 0 : nic | in(mtLL),out(mtLL) > 
+         < id(1) : kernel | 
+           msgPolicy(
+	     policy(id(3), id(4), MSG-FETCH-URL), 
+	     policy(id(3), id(4), MSG-FETCH-URL-ABORT),
+	     policy(id(3), id(6), MSG-DOM-COOKIE-SET),
+	     policy(id(3), id(6), MSG-DOM-COOKIE-GET),
+	     policy(id(3), id(11), MSG-UI-MSG),
+	     policy(id(3), id(14), MSG-WRITE-FILE),
+	     policy(id(3), id(14), MSG-READ-FILE),
+	     policy(id(4), id(3), MSG-RETURN-URL),
+	     policy(id(4), id(3), MSG-RETURN-URL-METADATA),
+	     policy(id(4), id(6), MSG-COOKIE-SET),
+	     policy(id(4), id(6), MSG-COOKIE-GET),
+	     policy(id(6), id(3), MSG-DOM-COOKIE-GET-RETURN),
+	     policy(id(6), id(4), MSG-COOKIE-GET-RETURN),
+	     policy(id(11), id(3), MSG-NEW-URL),
+	     policy(id(11), id(3), MSG-SWITCH-TAB),
+	     policy(id(11), id(3), MSG-WEBAPP-MSG),
+	     policy(id(14), id(3), MSG-READ-FILE-RETURN),
+	     policy(id(14), id(11), MSG-DOWNLOAD-INFO)),
+    	   nextNetworkProc(256),
+	   handledCurrently(none),
+	   weblabels(mtWPIS),
+	   networklabels(mtNPIS),
+	   displayedTopBar(about-blank) > 
+         < id(2) : proc | nextWAN(1024) > < id(2) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(5) : proc | none > < id(5) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(6) : proc | none > < id(6) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(7) : proc | none > < id(7) : pipe | fromKernel(mt), toKernel(mt) > 
+       	 < id(8) : proc | none > < id(8) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(9) : proc | none > < id(9) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(10) : proc | none > < id(10) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(11) : proc | none > < id(11) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(12) : proc | none > < id(12) : pipe | fromKernel(mt),toKernel(mt) >
+       	 < id(13) : proc | none > < id(13) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(15) : proc | activeWebapp(id(0)),displayedContent(about-blank) > } .
+endm
+
+mod IBOS-PRED-UNIQUE-KERNEL is
+  pr KERNEL .
+
+  var  Att         : AttributeSet .
+  vars Att1 Att2   : AttributeSet .
+  var  C           : Cid .
+  var  Cnf         : Configuration .
+  vars P P1 P2     : ProcId .
+
+  op unique-kernel : Sys -> [Bool] .
+ ceq [unique-kernel-0] :
+     unique-kernel( { Cnf } )
+   = false
+  if no-kernel(Cnf) .
+  eq [unique-kernel-1] :
+     unique-kernel( { < P : kernel | Att > Cnf } )
+   = no-kernel(Cnf) .
+  eq [unique-kernel-2] :
+     unique-kernel( { < P1 : kernel | Att1 > < P2 : kernel | Att2 > Cnf } )
+   = false .
+  
+  op no-kernel : Configuration -> Bool .
+  eq no-kernel(none)
+   = true .
+  eq no-kernel(<> Cnf)
+   = no-kernel(Cnf) .
+  eq no-kernel( < P : C | Att > Cnf )
+   = not(C ~ kernel) and no-kernel(Cnf) .
+endm
+
+**** The policy does not change
+mod IBOS-PRED-IMMUTABLE-POLICY is
+  pr KERNEL .
+
+  op immutable-policy : Sys PolicySet -> [Bool] .
+
+  op init-policy : -> PolicySet .
+  eq init-policy
+   = ( policy(id(3), id(4), MSG-FETCH-URL), 
+       policy(id(3), id(4), MSG-FETCH-URL-ABORT),
+       policy(id(3), id(6), MSG-DOM-COOKIE-SET),
+       policy(id(3), id(6), MSG-DOM-COOKIE-GET),
+       policy(id(3), id(11), MSG-UI-MSG),
+       policy(id(3), id(14), MSG-WRITE-FILE),
+       policy(id(3), id(14), MSG-READ-FILE),
+       policy(id(4), id(3), MSG-RETURN-URL),
+       policy(id(4), id(3), MSG-RETURN-URL-METADATA),
+       policy(id(4), id(6), MSG-COOKIE-SET),
+       policy(id(4), id(6), MSG-COOKIE-GET),
+       policy(id(6), id(3), MSG-DOM-COOKIE-GET-RETURN),
+       policy(id(6), id(4), MSG-COOKIE-GET-RETURN),
+       policy(id(11), id(3), MSG-NEW-URL),
+       policy(id(11), id(3), MSG-SWITCH-TAB),
+       policy(id(11), id(3), MSG-WEBAPP-MSG),
+       policy(id(14), id(3), MSG-READ-FILE-RETURN),
+       policy(id(14), id(11), MSG-DOWNLOAD-INFO)) .
+
+  var  Att    : AttributeSet .
+  var  Cnf    : Configuration .
+  var  PS     : PolicySet .
+
+  eq [immutable-policy]:
+     immutable-policy({ < id(1) : kernel | msgPolicy(PS), Att > Cnf }, PS)
+   = true .
+endm
+
+*** IBOS predicates
+mod IBOS-PREDS is
+  pr IBOS-PRED-INIT .
+  pr IBOS-PRED-UNIQUE-KERNEL .
+  pr IBOS-PRED-IMMUTABLE-POLICY .
+endm

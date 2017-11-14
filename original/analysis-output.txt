@@ -1,0 +1,245 @@
+rsasse-decidable% maude-alpha 
+		     \||||||||||||||||||/
+		   --- Welcome to Maude ---
+		     /||||||||||||||||||\
+	    Maude alpha96 built: May 23 2012 18:42:16
+	    Copyright 1997-2011 SRI International
+		   Tue Jun  5 10:01:07 2012
+Maude> in analysis.maude
+Reading in file: "ibos.maude"
+==========================================
+mod PROC-ID
+==========================================
+mod MSG-TYPE
+==========================================
+mod SYSCALL-TYPE
+==========================================
+mod PAYLOAD
+==========================================
+mod MSG-PIPE-BASICS
+==========================================
+mod WEBAPPMGR
+==========================================
+mod LABEL
+==========================================
+mod WEBAPP
+==========================================
+mod NETWORK
+==========================================
+mod KERNEL-POLICIES
+==========================================
+mod KERNEL
+==========================================
+mod RUN
+==========================================
+mod TEST-INSTRUMENTATION
+Done reading in file: "ibos.maude"
+==========================================
+***> This is just a state space exploration picking out those with appropriate
+    messages to a network process
+==========================================
+search in TEST-INSTRUMENTATION : init-simp-kernel < testMsg : testMsg | cmd(
+    new-url(Url2),new-url(Url3)) > =>* X:Configuration < kernel-id : kernel |
+    Att2,weblabels(WAPIS:WebappProcInfoSet,pi(Num:Nat, L':Label)),
+    networklabels(NPIS:NetworkProcInfoSet,pi(N:Nat, L':Label, L:Label)),
+    displayedTopBar(URL:Label) > < N:Nat : pipe | Att,fromKernel(msg(
+    OPOS-SYSCALL-FD-SEND-MESSAGE, payload(Num:Nat, N:Nat, MSG-FETCH-URL,
+    V:MsgVal, L:Label, T:typed, U:untyped)),ML':MessageList),toKernel(
+    ML:MessageList) > .
+
+Solution 1 (state 10)
+states: 11  rewrites: 72 in 1ms cpu (0ms real) (72000 rewrites/second)
+X:Configuration --> < 0 : nic | in(mtLL),out(mtLL) > < webappmgr-id : proc |
+    nextWAN(1025) > < webappmgr-id : pipe | fromKernel(mt),toKernel(mt) > <
+    cache-id : proc | none > < cache-id : pipe | fromKernel(mt),toKernel(mt) >
+    < cookie-id : proc | none > < cookie-id : pipe | fromKernel(mt),toKernel(
+    mt) > < vesafb-server-id : proc | none > < vesafb-server-id : pipe |
+    fromKernel(mt),toKernel(mt) > < mouse-server-id : proc | none > <
+    mouse-server-id : pipe | fromKernel(mt),toKernel(mt) > < network-server-id
+    : proc | none > < network-server-id : pipe | fromKernel(mt),toKernel(mt) >
+    < dns-server-id : proc | none > < dns-server-id : pipe | fromKernel(mt),
+    toKernel(mt) > < ui-id : proc | none > < ui-id : pipe | fromKernel(mt),
+    toKernel(mt) > < mouse-intr-id : proc | none > < mouse-intr-id : proc |
+    none > < mouse-intr-id : pipe | fromKernel(mt),toKernel(mt) > <
+    mouse-intr-id : pipe | fromKernel(mt),toKernel(mt) > < display-id : proc |
+    activeWebapp(1024),displayedContent(about-blank) > < testMsg : testMsg |
+    cmd(new-url(Url3)) > < 256 : proc | returnTo(1024),in(mtLL),out(mtLL) > <
+    256 : mem | in(mtLL),out(mtLL) > < 1024 : proc | rendered(about-blank),URL(
+    Url2),loading(1) > < 1024 : pipe | fromKernel(mt),toKernel(mt) >
+Att2 --> msgPolicy(policy(webapp-id, network-id, MSG-FETCH-URL),policy(
+    webapp-id, network-id, MSG-FETCH-URL-ABORT),policy(webapp-id, cookie-id,
+    MSG-DOM-COOKIE-SET),policy(webapp-id, cookie-id, MSG-DOM-COOKIE-GET),
+    policy(webapp-id, ui-id, MSG-UI-MSG),policy(webapp-id, storage-id,
+    MSG-WRITE-FILE),policy(webapp-id, storage-id, MSG-READ-FILE),policy(
+    network-id, webapp-id, MSG-RETURN-URL),policy(network-id, webapp-id,
+    MSG-RETURN-URL-METADATA),policy(network-id, cookie-id, MSG-COOKIE-SET),
+    policy(network-id, cookie-id, MSG-COOKIE-GET),policy(cookie-id, webapp-id,
+    MSG-DOM-COOKIE-GET-RETURN),policy(cookie-id, network-id,
+    MSG-COOKIE-GET-RETURN),policy(ui-id, webapp-id, MSG-NEW-URL),policy(ui-id,
+    webapp-id, MSG-SWITCH-TAB),policy(ui-id, webapp-id, MSG-WEBAPP-MSG),policy(
+    storage-id, webapp-id, MSG-READ-FILE-RETURN),policy(storage-id, ui-id,
+    MSG-DOWNLOAD-INFO)),nextNetworkProc(257),handledCurrently(mt)
+WAPIS:WebappProcInfoSet --> mtWPIS
+Num:Nat --> 1024
+L':Label --> Url2
+NPIS:NetworkProcInfoSet --> mtNPIS
+N:Nat --> 256
+L:Label --> Url2
+URL:Label --> Url2
+Att --> (none).AttributeSet
+V:MsgVal --> 0
+T:typed --> mtTyped
+U:untyped --> mtUntyped
+ML':MessageList --> mt
+ML:MessageList --> mt
+
+Solution 2 (state 12)
+states: 13  rewrites: 77 in 2ms cpu (1ms real) (38500 rewrites/second)
+X:Configuration --> < 0 : nic | in(mtLL),out(mtLL) > < webappmgr-id : proc |
+    nextWAN(1025) > < webappmgr-id : pipe | fromKernel(mt),toKernel(mt) > <
+    cache-id : proc | none > < cache-id : pipe | fromKernel(mt),toKernel(mt) >
+    < cookie-id : proc | none > < cookie-id : pipe | fromKernel(mt),toKernel(
+    mt) > < vesafb-server-id : proc | none > < vesafb-server-id : pipe |
+    fromKernel(mt),toKernel(mt) > < mouse-server-id : proc | none > <
+    mouse-server-id : pipe | fromKernel(mt),toKernel(mt) > < network-server-id
+    : proc | none > < network-server-id : pipe | fromKernel(mt),toKernel(mt) >
+    < dns-server-id : proc | none > < dns-server-id : pipe | fromKernel(mt),
+    toKernel(mt) > < ui-id : proc | none > < ui-id : pipe | fromKernel(mt),
+    toKernel(mt) > < mouse-intr-id : proc | none > < mouse-intr-id : proc |
+    none > < mouse-intr-id : pipe | fromKernel(mt),toKernel(mt) > <
+    mouse-intr-id : pipe | fromKernel(mt),toKernel(mt) > < display-id : proc |
+    activeWebapp(1024),displayedContent(about-blank) > < testMsg : testMsg |
+    cmd(new-url(Url2)) > < 256 : proc | returnTo(1024),in(mtLL),out(mtLL) > <
+    256 : mem | in(mtLL),out(mtLL) > < 1024 : proc | rendered(about-blank),URL(
+    Url3),loading(1) > < 1024 : pipe | fromKernel(mt),toKernel(mt) >
+Att2 --> msgPolicy(policy(webapp-id, network-id, MSG-FETCH-URL),policy(
+    webapp-id, network-id, MSG-FETCH-URL-ABORT),policy(webapp-id, cookie-id,
+    MSG-DOM-COOKIE-SET),policy(webapp-id, cookie-id, MSG-DOM-COOKIE-GET),
+    policy(webapp-id, ui-id, MSG-UI-MSG),policy(webapp-id, storage-id,
+    MSG-WRITE-FILE),policy(webapp-id, storage-id, MSG-READ-FILE),policy(
+    network-id, webapp-id, MSG-RETURN-URL),policy(network-id, webapp-id,
+    MSG-RETURN-URL-METADATA),policy(network-id, cookie-id, MSG-COOKIE-SET),
+    policy(network-id, cookie-id, MSG-COOKIE-GET),policy(cookie-id, webapp-id,
+    MSG-DOM-COOKIE-GET-RETURN),policy(cookie-id, network-id,
+    MSG-COOKIE-GET-RETURN),policy(ui-id, webapp-id, MSG-NEW-URL),policy(ui-id,
+    webapp-id, MSG-SWITCH-TAB),policy(ui-id, webapp-id, MSG-WEBAPP-MSG),policy(
+    storage-id, webapp-id, MSG-READ-FILE-RETURN),policy(storage-id, ui-id,
+    MSG-DOWNLOAD-INFO)),nextNetworkProc(257),handledCurrently(mt)
+WAPIS:WebappProcInfoSet --> mtWPIS
+Num:Nat --> 1024
+L':Label --> Url3
+NPIS:NetworkProcInfoSet --> mtNPIS
+N:Nat --> 256
+L:Label --> Url3
+URL:Label --> Url3
+Att --> (none).AttributeSet
+V:MsgVal --> 0
+T:typed --> mtTyped
+U:untyped --> mtUntyped
+ML':MessageList --> mt
+ML:MessageList --> mt
+
+[Solutions 3-96 have been cut for readability, but can be 
+ created very quickly anyway.]
+
+No more solutions.
+states: 581  rewrites: 4000 in 83ms cpu (88ms real) (47626 rewrites/second)
+==========================================
+***> This checks for address bar correctness. No solution means that there is
+    no mismatch possible, and thus the address bar is correct.
+==========================================
+search in TEST-INSTRUMENTATION : inspect-space init-simp-kernel =>*
+    X:Configuration < kernel-id : kernel | Att,displayedTopBar(URL:Label) > <
+    display-id : proc | Att2,displayedContent(URL':Label) > such that (
+    URL:Label =/= about-blank and URL':Label =/= about-blank) and URL:Label =/=
+    URL':Label = true .
+
+No solution.
+states: 701959  rewrites: 10367596 in 559452ms cpu (559553ms real) (18531
+    rewrites/second)
+==========================================
+***> All network requests from web page instances go to proper network process
+    (1); thus no solution with mismatched labeling exists. 
+==========================================
+search in TEST-INSTRUMENTATION : inspect-space init-simp-kernel =>*
+    X:Configuration < kernel-id : kernel | Att2,weblabels(
+    WAPIS:WebappProcInfoSet,pi(Num:Nat, L1':Label)),networklabels(
+    NPIS:NetworkProcInfoSet,pi(N:Nat, L2':Label, L2:Label)),displayedTopBar(
+    URL:Label) > < N:Nat : pipe | Att,fromKernel(msg(
+    OPOS-SYSCALL-FD-SEND-MESSAGE, payload(Num:Nat, N:Nat, MSG-FETCH-URL,
+    V:MsgVal, L1:Label, T:typed, U:untyped)),ML':MessageList),toKernel(
+    ML:MessageList) > such that L1:Label =/= L2:Label or L1':Label =/=
+    L2':Label = true .
+
+No solution.
+states: 701959  rewrites: 7969877 in 1083641ms cpu (1083836ms real) (7354
+    rewrites/second)
+==========================================
+***> Incoming Ethernet Frame gets put to the right network process memory (2);
+    thus no solution exists with a mismatched labeling:
+==========================================
+search in TEST-INSTRUMENTATION : inspect-space init-simp-kernel =>*
+    X:Configuration < kernel-id : kernel | Att2,networklabels(
+    NPIS:NetworkProcInfoSet,pi(N:Nat, L':Label, L2:Label)) > < N:Nat : mem |
+    Att,in(L1:Label,Ll:LabelList) > such that L1:Label =/= L2:Label = true .
+
+No solution.
+states: 701959  rewrites: 7060625 in 1100597ms cpu (1100796ms real) (6415
+    rewrites/second)
+==========================================
+***> Ethernet Frame from a network proc DMA memory to the NIC matches origin of
+    network proc (3); thus no solution exists where labels mismatch.
+==========================================
+search in TEST-INSTRUMENTATION : inspect-space init-simp-kernel =>*
+    X:Configuration < kernel-id : kernel | Att2,networklabels(
+    NPIS:NetworkProcInfoSet,pi(N:Nat, L':Label, L2:Label)) > < N:Nat : mem |
+    Att,out(L1:Label) > such that L1:Label =/= L2:Label = true .
+
+No solution.
+states: 701959  rewrites: 7043147 in 1209506ms cpu (1209722ms real) (5823
+    rewrites/second)
+==========================================
+***> The return message from a network process to a web page instance only has
+    data from an appropriate source (4); the labeling for webapp, network proc
+    and the data match, so no solution is found where there is a mismatch
+==========================================
+search in TEST-INSTRUMENTATION : inspect-space init-simp-kernel =>*
+    X:Configuration < kernel-id : kernel | Att3,weblabels(
+    WAPIS:WebappProcInfoSet,pi(N:Nat, L':Label)),networklabels(
+    NPIS:NetworkProcInfoSet,pi(N':Nat, L':Label, L1:Label)) > < N:Nat : proc |
+    Att,rendered(Lll:Label),URL(L'':Label),loading(1) > < N:Nat : pipe | Att2,
+    fromKernel(msg(OPOS-SYSCALL-FD-SEND-MESSAGE, payload(N':Nat, N:Nat,
+    MSG-RETURN-URL, V:MsgVal, L2:Label, T:typed, U:untyped)),ML:MessageList) >
+    such that L1:Label =/= L2:Label = true .
+
+No solution.
+states: 701959  rewrites: 7066439 in 1202192ms cpu (1202408ms real) (5877
+    rewrites/second)
+==========================================
+***> (5) again holds by the construction of the model (including policies).
+==========================================
+***> (6) holds by construction in the model as the web page content is [
+    displayedContent() of <display-id : ...>] and the browser chrome is
+    elements of the kernel [displayedTopBar in kernel]
+==========================================
+***> (7) holds by construction as all input is given to the kernel which passes
+    it to the active webapp (mouse/keyboard are not explicitly modeled); the
+    screen access is a corollary of (9) and the address bar correctness.
+==========================================
+***> (8) holds by construction. Each component in the model can only perform
+    its assigned (modeled!) functions.
+==========================================
+***>  The URL of the current tab is displayed to the user (9) - that is, there
+    is NEVER a mismatch between the URL of the currently active webapp [URL' of
+    W] and the address bar [URL of displayedTopBar in the kernel]. No solutions
+    found means this is true!
+==========================================
+search in TEST-INSTRUMENTATION : inspect-space init-simp-kernel =>*
+    X:Configuration < kernel-id : kernel | Att,displayedTopBar(URL:Label) > <
+    display-id : proc | Att2,activeWebapp(W:ProcId) > < W:ProcId : proc | Att3,
+    URL(URL':Label) > such that URL:Label =/= URL':Label = true .
+
+No solution.
+states: 701959  rewrites: 7559630 in 1233568ms cpu (1233790ms real) (6128
+    rewrites/second)
+Maude> 

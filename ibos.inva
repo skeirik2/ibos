@@ -1,0 +1,42 @@
+set show loop stats on .
+set show loop timing on .
+
+select INVA .
+loop init .
+
+(analyze init(S:Sys) implies unique-kernel(S:Sys) in IBOS-PREDS .)
+---(
+rewrites: 33699 in 84ms cpu (84ms real) (401154 rewrites/second)
+Checking IBOS-PREDS ||- init(S:Sys) => unique-kernel(S:Sys) ...
+Proof obligations generated:  1
+Proof obligations discharged: 1
+)
+
+(analyze-stable unique-kernel(S:Sys) in IBOS-PREDS KERNEL .)
+---(
+rewrites: 944276 in 8724ms cpu (8762ms real) (108232 rewrites/second)
+Checking IBOS-PREDS ||- unique-kernel(S:Sys) => O unique-kernel(S:Sys) ...
+Proof obligations generated:  2592
+Proof obligations discharged: 2592
+Success!
+)
+
+(analyze init(S:Sys) implies immutable-policy(S:Sys,init-policy) in IBOS-PREDS .)
+---(
+Maude> (analyze init(S:Sys) implies immutable-policy(S:Sys,init-policy) in IBOS-PREDS .)
+rewrites: 28501 in 72ms cpu (72ms real) (395819 rewrites/second)
+Checking IBOS-PREDS ||- init(S:Sys) => immutable-policy(S:Sys,init-policy) ...
+Proof obligations generated:  1
+Proof obligations discharged: 1
+Success!
+)
+
+(analyze-stable immutable-policy(S:Sys,Q:PolicySet) in IBOS-PREDS KERNEL .)
+---(
+Maude> (analyze-stable immutable-policy(S:Sys,Q:PolicySet) in IBOS-PREDS KERNEL .)
+rewrites: 444761 in 3260ms cpu (3258ms real) (136421 rewrites/second)
+Checking IBOS-PREDS ||- immutable-policy(S:Sys,Q:PolicySet) => O immutable-policy(S:Sys,Q:PolicySet) ...
+Proof obligations generated:  2088
+Proof obligations discharged: 2088
+Success!
+)

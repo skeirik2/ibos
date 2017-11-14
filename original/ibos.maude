@@ -1,0 +1,1056 @@
+mod PROC-ID is
+  including CONFIGURATION .
+  protecting INT .
+
+  sort ProcId .
+  subsort Int < ProcId  < Oid .
+  
+**** component IDs as constants.
+  op kernel-id : -> ProcId .
+  op webappmgr-id : -> ProcId .
+**** note that these 2 id are special and only used as a placeholder
+**** in policies!
+  op webapp-id : -> ProcId .
+  op network-id : -> ProcId .
+
+  op cache-id : -> ProcId .
+****    createp("cookie");
+  op cookie-id : -> ProcId .
+****  {OPOS_SERVICE_DRIVER_FB, "vesafb-server"},
+  op vesafb-server-id : -> ProcId .
+****  {OPOS_SERVICE_DRIVER_MOUSE, "mouse-server"},
+  op mouse-server-id : -> ProcId .
+****  {OPOS_SERVICE_DRIVER_NET, "e1000-server"},
+  op network-server-id : -> ProcId .
+****  {OPOS_SERVICE_DNS, "dns-server"},
+  op dns-server-id : -> ProcId .
+****  {OPOS_SERVICE_WINMGR, "ui"},
+  op ui-id : -> ProcId .
+****    createp("mouse-intr");
+  op mouse-intr-id : -> ProcId .
+****    createp("e1000-intr");
+  op network-intr-id : -> ProcId .
+  **** storage for cookies
+  op storage-id : -> ProcId .
+
+**** everything is a process, only the kernel is special
+  op kernel : -> Cid [ctor] . 
+  op proc : -> Cid [ctor] .
+**** The NIC and dma-memory are special as well, there is only one
+**** NIC, called 0 and the dma-memory belongs to a process, noted by
+**** same id.
+  op nic : -> Cid [ctor] .
+  op mem : -> Cid [ctor] .
+endm 
+
+mod MSG-TYPE is
+  protecting INT .
+**** different types of messages
+  sort MsgType .
+**** values are associated to types
+  sort MsgVal .
+  subsort Int < MsgVal .
+
+**** Q: where can i find the list of such messages in current code?
+**** A: ibos_source/dOs/op.h - note this goes into the message payload
+  op MSG-NEW-URL                    : -> MsgType .
+  op MSG-FETCH-URL                  : -> MsgType .
+  op MSG-RETURN-URL                 : -> MsgType .
+  op MSG-SET-URL                    : -> MsgType .
+  op MSG-UPDATE-URL                 : -> MsgType .
+  op MSG-UPDATA-CONTAINER           : -> MsgType .
+  op MSG-FETCH-URL-ABORT            : -> MsgType .
+  op MSG-SET-LOCATION-BAR           : -> MsgType .
+  op MSG-SET-STATUS-BAR             : -> MsgType .
+  op MSG-SET-CAPTION                : -> MsgType .
+  op MSG-FROM-VNC-CLIENT            : -> MsgType .
+  op MSG-FROM-VNC-SERVER            : -> MsgType .
+  op MSG-VNC-INIT                   : -> MsgType .
+  op MSG-NAV-SET-WEBAPP             : -> MsgType .
+  op MSG-NEW-WEBAPP                 : -> MsgType .
+  op MSG-SWITCH-TAB                 : -> MsgType .
+  op MSG-NAV-STOP                   : -> MsgType .
+  op MSG-GET-OBJECT-AUDIT-RECORDS   : -> MsgType .
+  op MSG-QUERY-AUDIT-LOG-REPLY      : -> MsgType .
+  op MSG-EXTENSION-ACTION           : -> MsgType .
+  op MSG-STORE-OBJECT               : -> MsgType .
+  op MSG-RETRV-OBJECT               : -> MsgType .
+  op MSG-RETURN-URL-METADATA        : -> MsgType .
+  op MSG-OBJECT-ADD-ACL-USER        : -> MsgType .
+  op MSG-OBJECT-REM-ACL-USER        : -> MsgType .
+  op MSG-OBJECT-DOWNLOAD-READY      : -> MsgType .
+  op MSG-JS-EVALUATE                : -> MsgType .
+  op MSG-JS-REPLY                   : -> MsgType .
+  op MSG-JS-SET-HANDLER-CODE        : -> MsgType .
+  op MSG-JS-INVOKE-HANDLER          : -> MsgType .
+  op MSG-SNAP-SHOT                  : -> MsgType .
+  op MSG-REPLAY-WEBAPP              : -> MsgType .
+  op MSG-SET-POLICY                 : -> MsgType .
+  op MSG-LOG-BEHAVIOR-DATA          : -> MsgType .
+  op MSG-LOG-USER-INPUT             : -> MsgType .
+  op MSG-SET-REPLAY-MODE            : -> MsgType .
+  op MSG-SAVE-DOM                   : -> MsgType .
+  op MSG-ACK-REPLAY-MSG             : -> MsgType .
+  op MSG-EMBED-FRAME                : -> MsgType .
+
+  op MSG-COOKIE-SET                 : -> MsgType .
+  op MSG-COOKIE-REMOVE              : -> MsgType .
+  op MSG-COOKIE-LISTDOMAINS         : -> MsgType .
+  op MSG-COOKIE-GET                 : -> MsgType .
+  op MSG-COOKIE-GET-RETURN          : -> MsgType .
+  op MSG-COOKIE-NEWJAR              : -> MsgType .
+  op MSG-COOKIE-NUMJARS             : -> MsgType .
+  op MSG-COOKIE-USEJAR              : -> MsgType .
+
+  op MSG-PLUGIN-NPN                 : -> MsgType .
+  op MSG-PLUGIN-NPP                 : -> MsgType .
+  op MSG-PLUGIN-EXECUTE             : -> MsgType .
+  op MSG-PLUGIN-SET-URL             : -> MsgType .
+
+  op MSG-DOM-COOKIE-SET             : -> MsgType .
+  op MSG-DOM-COOKIE-GET             : -> MsgType .
+  op MSG-DOM-COOKIE-GET-RETURN      : -> MsgType .
+
+  op MSG-WRITE-FILE                 : -> MsgType .
+  op MSG-READ-FILE                  : -> MsgType .
+  op MSG-READ-FILE-RETURN           : -> MsgType .
+  op MSG-DOWNLOAD-INFO              : -> MsgType .
+
+**** see line 96ff in ibos_source/dOs/op.h --- These pieces of extra information
+**** all go into the MsgVal field, they are in addition to the message
+**** type being a webapp message.
+sort MSGWEBAPPMSGVal .
+subsort MSGWEBAPPMSGVal < MsgVal .
+**** MsgType for all the values below:
+  op MSG-WEBAPP-MSG                 : -> MsgType .
+  op MSG-WEBAPP-CLOSE               : -> MSGWEBAPPMSGVal .
+  op MSG-WEBAPP-SHOW                : -> MSGWEBAPPMSGVal .
+  op MSG-WEBAPP-HIDE                : -> MSGWEBAPPMSGVal .
+  op MSG-WEBAPP-LOAD-URL            : -> MSGWEBAPPMSGVal .
+  op MSG-WEBAPP-EVENT               : -> MSGWEBAPPMSGVal .
+**** above: MSG-WEBAPP-MSG type
+
+sort MSGUIMSGVal .
+subsort MSGUIMSGVal < MsgVal .
+**** MsgType for all the values below:
+  op MSG-UI-MSG                     : -> MsgType .
+  op MSG-loadStarted                : -> MSGUIMSGVal . 
+  op MSG-loadProgress               : -> MSGUIMSGVal .
+  op MSG-loadFinished               : -> MSGUIMSGVal .
+  op MSG-linkHovered                : -> MSGUIMSGVal .
+  op MSG-statusBarMessage           : -> MSGUIMSGVal .
+  op MSG-geometryChangeRequested    : -> MSGUIMSGVal .
+  op MSG-windowCloseRequested       : -> MSGUIMSGVal .
+  op MSG-toolBarVisibilityChangeRequested : -> MSGUIMSGVal .
+  op MSG-statusBarVisibilityChangeRequested : -> MSGUIMSGVal .
+  op MSG-menuBarVisibilityChangeRequested : -> MSGUIMSGVal .
+  op MSG-titleChanged               : -> MSGUIMSGVal .
+  op MSG-iconChanged                : -> MSGUIMSGVal .
+  op MSG-urlChanged                 : -> MSGUIMSGVal .
+  op MSG-addHistoryItem             : -> MSGUIMSGVal .
+  op MSG-navBackOrForward           : -> MSGUIMSGVal .
+  op MSG-webAppExited               : -> MSGUIMSGVal .
+**** above: MSG-UI-MSG
+endm
+
+mod SYSCALL-TYPE is 
+  sort SyscallType .
+**** this is from ibos_source/dKernel/service.cc
+  op OPOS-SYSCALL-FD-SEND-MESSAGE : -> SyscallType .
+  op OPOS-SYSCALL-CREATE-PROCESS : -> SyscallType .
+  op OPOS-SYSCALL-REGISTER-IRQ-THREAD : -> SyscallType .
+  op OPOS-SYSCALL-GET-RESERVE-MEM : -> SyscallType .
+  op OPOS-SYSCALL-GET-SERVICE-TID : -> SyscallType .
+  op OPOS-SYSCALL-REGISTER-SERVICE : -> SyscallType .
+  op OPOS-SYSCALL-ALLOCATE-DMA-MEMORY : -> SyscallType .
+  op OPOS-SYSCALL-POLL : -> SyscallType .
+  op OPOS-SYSCALL-FD-RECEIVE-MSSAGE : -> SyscallType .
+  op OPOS-SYSCALL-E1000-SEND-ETHERNET-PACKET : -> SyscallType .
+  op OPOS-SYSCALL-E1000-PARSE-INTERRUPT-RESULT : -> SyscallType .
+  op OPOS-SYSCALL-E1000-IF-UP : -> SyscallType .
+  op OPOS-SYSCALL-REGISTER-SUBSYSTEM : -> SyscallType .
+  op OPOS-SYSCALL-GET-FB-MEMORY : -> SyscallType .
+  op OPOS-SYSCALL-IS-WINDOW-MGR : -> SyscallType .
+  op OPOS-SYSCALL-NET-IS-PORT-AVAILABLE : -> SyscallType .
+  op OPOS-SYSCALL-NET-ALLOCATE-PORT : -> SyscallType .
+  op OPOS-SYSCALL-NET-FREE-PORT : -> SyscallType .
+  op OPOS-SYSCALL-TOUCH : -> SyscallType .
+endm
+
+mod PAYLOAD is
+  protecting MSG-TYPE .
+  protecting PROC-ID .
+  protecting STRING .
+  sort typed . **** not actually used 
+  op mtTyped : -> typed [ctor] .
+  sort untyped . **** not actually used
+  op mtUntyped : -> untyped [ctor] .
+  sort Payload . 
+**** correct sender Oid enforced by kernel
+  op payload : Oid Oid MsgType MsgVal String typed untyped -> Payload [ctor] .
+**** This is how the payload is used in practice:
+**** Sender - Receiver - Msg - Auxiliary Msg Info - URL (as Label) - unused - unused
+endm
+
+mod MSG-PIPE-BASICS is
+  including CONFIGURATION .
+  protecting PROC-ID .
+  protecting MSG-TYPE .
+  protecting SYSCALL-TYPE .
+  protecting PAYLOAD  .
+  protecting STRING .
+  protecting INT .
+
+**** pipes are objects themselves, their Oid shows which object
+**** communicates to the kernel on that pipe
+  op pipe : -> Cid [ctor] .
+
+**** messages added to the pipes under these wrappers for outgoing/incoming
+  op fromKernel : MessageList -> Attribute [ctor] .
+  op toKernel : MessageList -> Attribute [ctor] .
+
+**** messages
+  sort Message .
+  sort MessageList .
+  subsort Message < MessageList .
+  op msg : SyscallType Payload -> Message [ctor] .
+**** Old msg version---  op msg : Oid Oid MsgType MsgVal String -> Message [ctor] .
+  op mt : -> Message [ctor] .
+  op _,_ : MessageList MessageList -> MessageList [ctor assoc id: mt] .
+
+**** this changes the recipient of the message inside the payload part.
+  op changeRecipient : Oid Message -> Message .
+  eq changeRecipient(Num'':Nat, 
+                     msg(ST:SyscallType, 
+                     payload(Num:Nat, N':ProcId, M:MsgType, V:MsgVal, S:String, 
+                             T:typed, U:untyped)))
+   = msg(ST:SyscallType, 
+     payload(Num:Nat, Num'':Nat, M:MsgType, V:MsgVal, S:String, 
+             T:typed, U:untyped)) .
+endm
+
+mod WEBAPPMGR is
+  inc MSG-PIPE-BASICS .
+  *** next unused process id number for a web app
+  op nextWAN : Int -> Attribute [ctor] .
+
+**** This attribute is used in the kernel, only. See for details:
+**** ibos_source/dKernel/webappmgr.h/cc and ibos_source/dKernel/netprocmgr.h/cc
+endm
+
+mod LABEL is
+  inc MSG-PIPE-BASICS .
+
+sort Domain .
+op dom : String -> Domain [ctor] .
+
+sort Port .
+op port : Nat -> Port [ctor] .
+
+sort Protocol .
+op http : -> Protocol [ctor] .
+op https : -> Protocol [ctor] .
+
+sort Label .
+op about-blank : -> Label [ctor] .
+op l : Protocol Domain Port -> Label [ctor] .
+**** This subsorting is for ease of using URLs in messages. We could
+**** also just use strings for URLs but this is more convenient.
+subsort Label < String .
+
+sort LabelList .
+subsort Label < LabelList .
+op mtLL : -> LabelList [ctor] .
+op _,_ : LabelList LabelList -> LabelList [ctor assoc id: mtLL] .
+endm
+
+
+mod WEBAPP is
+  inc LABEL .
+**** Webapps have data to be put on screen - we only refer to it by
+**** the label of the page where it is from.
+  op rendered : Label -> Attribute [ctor] .
+**** This is where the webapp should load its data from!
+  op URL : Label -> Attribute [ctor] .
+**** This notes whether it has already loaded, or has not yet started to do so.
+  op loading : Nat -> Attribute [ctor] .
+
+**** need the capability to check whether a process id is for a webapp
+  op isWebapp : Oid -> Bool .
+  eq isWebapp(Num:Nat) = (1024 <= Num:Nat) and (Num:Nat < 1056) .
+  eq isWebapp(webapp-id) = true .
+  eq isWebapp(O:Oid) = false [owise] .
+
+  vars N N' : Nat .
+  vars ML : MessageList .
+  vars L L' : Label .
+  vars Att Att2 : AttributeSet .
+
+  eq < N : proc | rendered(L) , URL(L') , loading(0) , Att >
+     < N : pipe | toKernel(ML) , Att2 >
+   = < N : proc | rendered(L) , URL(L') , loading(1) , Att >
+     < N : pipe | toKernel(ML, 
+            msg(OPOS-SYSCALL-FD-SEND-MESSAGE,
+                payload(N, network-id, MSG-FETCH-URL, 0, L', mtTyped, mtUntyped))) , 
+                  Att2 > .
+
+**** Note that the webapp does not check whether what it gets back
+**** from the network is actually the website it asked for in the
+**** first place. We represent the data it gets by only giving its
+**** URL, that is, only giving its label. This changes the rendered
+**** URL to the URL the data is received from.
+***** The 'missing' check above is essentially happening in
+***** checkConnection(), in that only appropriately connected network
+***** processes and web apps can communicate, based on the policies,
+***** and only the right data can be transmitted.
+  rl < N : proc | rendered(L) , URL(L') ,loading(1) , Att >
+     < N : pipe | fromKernel(
+                   msg(OPOS-SYSCALL-FD-SEND-MESSAGE,
+                       payload(N', N, MSG-RETURN-URL, V:MsgVal, LL:Label, T:typed, U:untyped)),
+                   ML) , Att2 >
+   => < N : proc | rendered(LL:Label) , URL(L') , loading(1) , Att >
+      < N : pipe | fromKernel(ML) , Att2 > .
+endm
+
+mod NETWORK is 
+  inc LABEL .
+**** NETWORK is just receiving requests for data and answering them
+**** right away once it is sent out by the NIC
+
+****  need to be able to check if it is a network process
+  op isNetProc : Oid -> Bool .
+  eq isNetProc(Num:Nat) = (256 <= Num:Nat) and (Num:Nat < 1023) .
+  eq isNetProc(network-id) = true .
+  eq isNetProc(O:Oid) = false [owise] .
+
+  var N : Nat .
+  vars ML ML' : MessageList .
+  vars Att Att2 : AttributeSet .
+
+ op returnTo : ProcId -> Attribute [ctor] .
+ op in : LabelList -> Attribute [ctor] .
+ op out : LabelList -> Attribute [ctor] .
+
+**** network process gets a request from a webapp; network process
+**** forms an ethernet frame; the kernel check that frame and give to
+**** NIC; NIC generate instant answer in form of EF; that ethernet
+**** frame then gets returned to the (correct! check origin, hopefully
+**** this one) network process which returns data to the web page that
+**** requested it originally
+
+**** network proc forms packet for transmission - kernel has physical
+**** address, kernel gives physical address to driver (but NO access
+**** to that location's content), driver can program NIC to send the
+**** packet at given address [kernel double checks that this address
+**** is the given one]
+
+**** request from a webapp:
+  crl < N : proc | returnTo(SomeProcNum:Nat) , out(Ll:LabelList) , Att >
+      < N : pipe | toKernel(ML) , fromKernel(
+              msg(OPOS-SYSCALL-FD-SEND-MESSAGE,
+                  payload(Num:Nat, N, MSG-FETCH-URL, V:MsgVal, L:Label, T:typed, U:untyped)), 
+              ML') , Att2 >
+    => < N : proc | returnTo(Num:Nat) , out(Ll:LabelList, L:Label) , Att >
+      < N : pipe | toKernel(ML) , fromKernel(ML') , Att2 >  
+   if isNetProc(N) .
+
+**** The network process writes a request into the memory for pickup
+**** by NIC - needing to go through kernel in next step
+  rl < N : proc | out(L:Label, Ll:LabelList) , Att >
+     < N : mem | out(mtLL) , Att2 >
+  => < N : proc | out(Ll:LabelList) , Att >
+     < N : mem | out(L:Label) , Att2 > .
+
+**** Kernel now gives this to NIC - checking that target is what is
+**** allowed for this network process .
+***** That DMA rule is in the kernel
+
+**** The NIC can create a response for any message -
+**** order of returns is NOT guaranteed
+  rl < 0 : nic | out(Ll:LabelList , L:Label , Ll':LabelList) , 
+                 in(Ll'':LabelList) , Att >
+  => < 0 : nic | out(Ll:LabelList , Ll':LabelList) , 
+                 in(Ll'':LabelList, L:Label) , Att > .
+
+**** Incoming ethernet frame in the NIC gets assigned to the
+**** appropriate network process by the kernel
+***** That DMA rule is in the kernel 
+
+**** The network  process reads a return by NIC from memory  - did go
+**** through kernel in prior step
+  rl < N : proc | in(Ll:LabelList) , Att >
+     < N : mem | in(L:Label) , Att2 >
+  => < N : proc | in(Ll:LabelList, L:Label) , Att >
+     < N : mem | in(mtLL) , Att2 > .
+
+**** Sending a message from the network process to the webapp - this
+**** will be subject to kernel checking according to regular policies
+  ceq < N : proc | returnTo(Num:Nat) , in(L:Label, Ll:LabelList) , Att >
+      < N : pipe | toKernel(ML) , fromKernel(ML') , Att2 >  
+    = < N : proc | returnTo(Num:Nat) , in(Ll:LabelList) , Att >
+      < N : pipe | toKernel(ML, 
+              msg(OPOS-SYSCALL-FD-SEND-MESSAGE,
+                  payload(N, Num:Nat, MSG-RETURN-URL, 0, L:Label, mtTyped, mtUntyped))) , 
+                  fromKernel(ML') , Att2 >
+   if isNetProc(N) .
+endm
+
+mod KERNEL-POLICIES is
+  inc MSG-PIPE-BASICS .
+  inc WEBAPPMGR .
+  inc LABEL .
+  inc WEBAPP .
+  inc NETWORK .
+**** define how to build a single policy! then add them into the initial configuration
+**** Q: where to find the policies? A: ibos_source/dKernel/access.h
+**** ibos_source/dKernel/access.cc (line 195 and down; shows who can
+**** communicate to whom)
+
+
+**** Q: for those things allowed  to communicate with each other, can
+**** ANYTHING  be sent  or  is  there further  control?  A: Only  the
+**** MsgType given in  that assignment can be sent!  These are all
+**** OP(browser)-related messages!
+
+**** Policies are mostly browser-related, but can be on a lower level
+**** [i.e., syscall level], e.g., for networkProc -> hardware
+**** communication
+  sort Policy .
+  sort PolicySet .
+  subsort Policy < PolicySet .
+  op mtPS : -> PolicySet .
+  op _,_ : PolicySet PolicySet -> PolicySet [assoc comm id: mtPS] .  
+
+**** make the policylist an attribute with this wrapper
+  op msgPolicy : PolicySet -> Attribute [ctor] .
+**** a policy is a sender Oid, receiver Oid and MsgType
+  op policy : Oid Oid MsgType -> Policy [ctor] .
+
+**** the next available proc id for a network proc
+  op nextNetworkProc : Nat -> Attribute [ctor] .
+
+**** the message currently handled by the kernel
+  op handledCurrently : Message -> Attribute [ctor] .
+
+****webapp info stored by kernel
+sort WebappProcInfo .
+**** label identifies the website this webapp is showing - this needs to match the first label of a network proc to allow communication
+op pi : ProcId Label -> WebappProcInfo [ctor] . 
+
+****network proc info stored by kernel
+sort NetworkProcInfo .
+**** first label to identify related webapps, second label for whom
+**** this network proc can communicate with (via actual ethernet; to outside world)
+op pi : ProcId Label Label -> NetworkProcInfo [ctor] . 
+
+sort WebappProcInfoSet .
+subsort WebappProcInfo < WebappProcInfoSet .
+op mtWPIS : -> WebappProcInfoSet [ctor] .
+op _,_ : WebappProcInfoSet WebappProcInfoSet -> WebappProcInfoSet [assoc comm id: mtWPIS] .
+op weblabels : WebappProcInfoSet -> Attribute [ctor] .
+
+sort NetworkProcInfoSet .
+subsort NetworkProcInfo < NetworkProcInfoSet .
+op mtNPIS : -> NetworkProcInfoSet [ctor] .
+op _,_ : NetworkProcInfoSet NetworkProcInfoSet -> NetworkProcInfoSet [assoc comm id: mtNPIS] .
+op networklabels : NetworkProcInfoSet -> Attribute [ctor] .
+
+
+***** These next two rules are what was promised above in the network
+***** process module above when referring to DMA rules.
+**** Kernel gives network process DMA to NIC - checking that target is
+**** what is allowed for this network process .
+  rl < N : mem | out(L':Label) , Att > 
+     < kernel-id : kernel | 
+       networklabels(pi(N, L:Label, L':Label), NPIS:NetworkProcInfoSet) ,
+       Att2 >
+     < 0 : nic | out(Ll:LabelList) , Att3 >
+  => < N : mem | out(mtLL) , Att > 
+     < kernel-id : kernel | 
+       networklabels(pi(N, L:Label, L':Label), NPIS:NetworkProcInfoSet) ,
+       Att2 >
+     < 0 : nic | out(Ll:LabelList, L':Label) , Att3 > .
+----
+**** Incoming ethernet frame in the NIC gets assigned to the
+**** appropriate network process DMA by the kernel
+  rl < N : mem | in(mtLL) , Att > 
+     < kernel-id : kernel | 
+       networklabels(pi(N, L:Label, L':Label), NPIS:NetworkProcInfoSet) ,
+       Att2 >
+     < 0 : nic | in(L':Label, Ll:LabelList) , Att3 > 
+  => < N : mem | in(L':Label) , Att > 
+     < kernel-id : kernel | 
+       networklabels(pi(N, L:Label, L':Label), NPIS:NetworkProcInfoSet) ,
+       Att2 >
+     < 0 : nic | in(Ll:LabelList) , Att3 > .
+
+  
+**** this operator is added when the policy check succeeds, but
+**** connection based on labels needs to still be verified
+  op checkConnection : Oid Oid Message -> Message .
+  op checkConnection : Oid Oid Label Message -> Message .
+**** there is a connection, just forward the message
+**** network proc answering to webapp, thus having the correct recipient:
+  eq < kernel-id : kernel | 
+       handledCurrently(checkConnection(Num:Nat, Num':Nat, M)) , 
+       weblabels(pi(Num':Nat, L:Label), WPIS:WebappProcInfoSet) , 
+       networklabels(pi(Num:Nat, L:Label, L':Label), NPIS:NetworkProcInfoSet) ,
+       Att >
+  =  < kernel-id : kernel | 
+       handledCurrently(M) , 
+       weblabels(pi(Num':Nat, L:Label), WPIS:WebappProcInfoSet) , 
+       networklabels(pi(Num:Nat, L:Label, L':Label), NPIS:NetworkProcInfoSet) ,
+       Att > 
+  .
+
+**** Note how the webapp Num is labeled with L, thus the network proc
+**** needs to have the first label L also. Additionally the target URL
+**** L' needs to be the network proc's second label. Note that the 'target' network proc id Num' is totally ignored.
+  eq < kernel-id : kernel | 
+       handledCurrently(checkConnection(Num:Nat, Num':Nat, L':Label, M)) , 
+       weblabels(pi(Num:Nat, L:Label), WPIS:WebappProcInfoSet) , 
+       networklabels(pi(Num'':Nat, L:Label, L':Label), NPIS:NetworkProcInfoSet) ,
+       Att >
+  =  < kernel-id : kernel | 
+       handledCurrently(changeRecipient(Num'':Nat, M)) , 
+       weblabels(pi(Num:Nat, L:Label), WPIS:WebappProcInfoSet) , 
+       networklabels(pi(Num'':Nat, L:Label, L':Label), NPIS:NetworkProcInfoSet) ,
+       Att > 
+  .
+
+**** If no appropriate network process can be found in the above
+**** equation, start a new network proc - this assumes that there will
+**** be no more than 772 network procs started, to prevent that, we
+**** would need to check "Num'' < 1024" :
+  eq < kernel-id : kernel | 
+       handledCurrently(checkConnection(Num:Nat, Num':Oid, L':Label, M)) , 
+       weblabels(pi(Num:Nat, L:Label), WPIS:WebappProcInfoSet) , 
+       networklabels(NPIS:NetworkProcInfoSet) ,
+       nextNetworkProc(Num'':Nat) ,
+       Att >
+  =  < kernel-id : kernel | 
+       handledCurrently(changeRecipient(Num'':Nat, M)) , 
+       weblabels(pi(Num:Nat, L:Label), WPIS:WebappProcInfoSet) , 
+       networklabels(pi(Num'':Nat, L:Label, L':Label), NPIS:NetworkProcInfoSet) ,
+       nextNetworkProc(s(Num'':Nat)) ,
+       Att > 
+     < Num'':Nat : proc | returnTo(Num:Nat) , in(mtLL) , out(mtLL) >
+     < Num'':Nat : mem | in(mtLL) , out(mtLL) >
+     < Num'':Nat : pipe | toKernel(mt), fromKernel(mt) > 
+  [owise] .
+
+
+  var M : Message .
+  var MP : PolicySet .
+  vars Att Att2 Att3 : AttributeSet .
+  vars ID N N' : ProcId .
+  var ML : MessageList .
+
+**** Receiving an OP message sets the sender ProcId correctly. This
+**** also subjects the message to policy checking.
+rl [kernelReceivesOPMessage] :
+  < kernel-id : kernel | 
+      handledCurrently(mt) , 
+      msgPolicy(MP), Att >
+  < ID : pipe | toKernel(
+                 msg(ST:SyscallType, 
+                     payload(N, N', M:MsgType, V:MsgVal, S:String, 
+                             T:typed, U:untyped)), ML) , 
+                Att2 >
+  =>
+  < kernel-id : kernel | 
+      handledCurrently(policyAllows(
+             msg(ST:SyscallType, 
+                 payload(ID, N', M:MsgType, V:MsgVal, S:String, 
+                         T:typed, U:untyped)), MP)) , 
+      msgPolicy(MP), Att >
+  < ID : pipe | toKernel(ML) , Att2 >
+  .
+
+**** Once the policy has been checked and any further processing has
+**** been dealt with, OP messages are forwarded.
+rl [kernelForwardsOPMessage] :
+  < kernel-id : kernel | 
+      handledCurrently(
+             msg(ST:SyscallType, 
+                 payload(ID, N', M:MsgType, V:MsgVal, S:String, 
+                         T:typed, U:untyped))) , 
+      Att >
+  < N' : pipe | fromKernel(ML) , Att2 >
+  =>
+  < kernel-id : kernel | 
+      handledCurrently(mt) , 
+      Att >
+  < N' : pipe | fromKernel(ML, 
+                 msg(ST:SyscallType, 
+                     payload(ID, N', M:MsgType, V:MsgVal, S:String, 
+                             T:typed, U:untyped))) , 
+                Att2 >
+  .
+
+**** kernel-owned address bar - part of the 'secure' UI
+  op displayedTopBar : Label -> Attribute [ctor] .
+
+**** display memory modeled as an object.
+  op display-id : -> ProcId .
+**** ID of the webapp that is the one on top, that is currently
+**** allowed to write to the display - initially there is no owner
+  op activeWebapp : ProcId -> Attribute [ctor] .
+  op none : -> ProcId .
+**** we only note the label of the things being displayed as an attribute of that object
+  op displayedContent : Label -> Attribute [ctor] .
+
+**** Kernel needs to do something
+  op kernelDo : Message -> Message .
+
+
+**** Once the policy has been checked, further processing is taken care of;
+**** switching the active tab in the UI is done here.
+**** The kernel will change topbar, change memory access
+**** for display - zero display memory first - let new owner refresh
+**** display 
+rl [kernelHandlesTabSwitch] :
+  < kernel-id : kernel | 
+      handledCurrently(kernelDo(
+             msg(ST:SyscallType, 
+                 payload(ui-id, N', MSG-SWITCH-TAB, V:MsgVal, S:String, 
+                         T:typed, U:untyped)))) , 
+      displayedTopBar(L:Label),
+      weblabels(pi(N', L':Label), WPIS:WebappProcInfoSet) , 
+      Att >
+  < display-id : proc | 
+    activeWebapp(P:ProcId),
+    displayedContent(L'':Label),
+    Att2 >
+  =>
+  < kernel-id : kernel | 
+      handledCurrently(mt) , 
+      displayedTopBar(L':Label),
+      weblabels(pi(N', L':Label), WPIS:WebappProcInfoSet) , 
+      Att >
+  < display-id : proc | 
+    activeWebapp(N'),
+    displayedContent(about-blank),
+    Att2 >
+  .
+
+
+**** Allow the active webapp to change the display whenever it wants to do so.
+**** ONLY the active webapp can make changes to the display!
+***** Note that this is the more abstract version, for the concrete and buggy one, see the memory.maude file.
+crl  < display-id : proc | 
+       activeWebapp(N),
+       displayedContent(LOld:Label),
+       Att2 >
+     < N : proc |
+       rendered(L:Label),
+       Att3 >
+  => 
+     < display-id : proc | 
+       activeWebapp(N),
+       displayedContent(L:Label),
+       Att2 >
+    < N : proc |
+       rendered(L:Label),
+       Att3 > 
+if LOld:Label =/= L:Label .
+
+
+***** Creating a NEW webapp:
+**** Once the policy has been checked, further processing is taken care of;
+**** this switches the active webapp to the newly created webapp for this URL
+**** The kernel will change topbar, change memory access
+**** for display - zero display memory first - let new owner refresh
+**** display later
+**** Q: How does the UI signal if the user types a new URL into the
+**** address bar for a fresh webapp; and what about an existing
+**** webapp [say that webapp is at URL A and the user types a URL B]
+**** A: new webapp! label NEVER changes - so new webapp is needed!
+rl [kernelHandlesNewUrl] :
+  < kernel-id : kernel | 
+      handledCurrently(kernelDo(
+             msg(ST:SyscallType, 
+                 payload(ui-id, webapp-id, MSG-NEW-URL, V:MsgVal, URL:Label, 
+                         T:typed, U:untyped)))) , 
+      displayedTopBar(L:Label),
+      weblabels(WPIS:WebappProcInfoSet) , 
+      Att >
+  < display-id : proc | 
+    activeWebapp(P:ProcId),
+    displayedContent(L'':Label),
+    Att2 >
+  < webappmgr-id : proc | nextWAN(NewWA:Nat) , Att3 >
+  =>
+  < kernel-id : kernel | 
+      handledCurrently(mt) , 
+      displayedTopBar(URL:Label),
+      weblabels(pi(NewWA:Nat, URL:Label), WPIS:WebappProcInfoSet) , 
+      Att >
+  < display-id : proc | 
+    activeWebapp(NewWA:Nat),
+    displayedContent(about-blank),
+    Att2 >
+  < webappmgr-id : proc | nextWAN(s(NewWA:Nat)) , Att3 >
+  < NewWA:Nat : proc | 
+      rendered(about-blank) ,
+      URL(URL:Label) ,
+      loading(0) > 
+  < NewWA:Nat : pipe |
+      fromKernel(mt),
+      toKernel(mt) >
+  .
+
+
+**** check whether there is a policy in the policyset that allows the
+**** message to be sent - initial policy set defined in RUN
+  op policyAllows : Message PolicySet -> Message .
+
+**** policy allows message from N to N' with M:MsgType
+  eq policyAllows(
+       msg(ST:SyscallType, 
+           payload(N, N', M:MsgType, V:MsgVal, S:String, 
+                   T:typed, U:untyped)), 
+       (policy(N, N', M:MsgType), MP)) 
+   =  msg(ST:SyscallType, 
+          payload(N, N', M:MsgType, V:MsgVal, S:String, 
+                  T:typed, U:untyped)) .
+
+**** policy allows message from webapp Num:Nat to N' (not network proc) with M:MsgType
+ ceq policyAllows(
+       msg(ST:SyscallType, 
+           payload(Num:Nat, N', M:MsgType, V:MsgVal, S:String, 
+                   T:typed, U:untyped)), 
+       (policy(webapp-id, N', M:MsgType), MP)) 
+   =  msg(ST:SyscallType, 
+          payload(Num:Nat, N', M:MsgType, V:MsgVal, S:String, 
+                  T:typed, U:untyped)) 
+  if isWebapp(Num:Nat) /\ not isNetProc(N') .
+
+**** policy allows message from N (not network proc) to webapp Num':Nat with M:MsgType
+ ceq policyAllows(
+       msg(ST:SyscallType, 
+           payload(N, Num':Nat, M:MsgType, V:MsgVal, S:String, 
+                   T:typed, U:untyped)), 
+       (policy(N, webapp-id, M:MsgType), MP)) 
+   =  msg(ST:SyscallType, 
+          payload(N, Num':Nat, M:MsgType, V:MsgVal, S:String, 
+                  T:typed, U:untyped)) 
+  if isWebapp(Num':Nat) /\ not isNetProc(N) .
+
+**** duplicated for network processes:
+**** policy allows message from network process Num:Nat to N' (not webapp) with M:MsgType
+ ceq policyAllows(
+       msg(ST:SyscallType, 
+           payload(Num:Nat, N', M:MsgType, V:MsgVal, S:String, 
+                   T:typed, U:untyped)), 
+       (policy(network-id, N', M:MsgType), MP)) 
+   =  msg(ST:SyscallType, 
+          payload(Num:Nat, N', M:MsgType, V:MsgVal, S:String, 
+                  T:typed, U:untyped)) 
+  if isNetProc(Num:Nat)  /\ not isWebapp(N') .
+
+**** policy allows message from N (not webapp) to network process Num':Nat with M:MsgType
+ ceq policyAllows(
+       msg(ST:SyscallType, 
+           payload(N, Num':Nat, M:MsgType, V:MsgVal, S:String, 
+                   T:typed, U:untyped)), 
+       (policy(N, network-id, M:MsgType), MP)) 
+   =  msg(ST:SyscallType, 
+          payload(N, Num':Nat, M:MsgType, V:MsgVal, S:String, 
+                  T:typed, U:untyped)) 
+  if isNetProc(Num':Nat) /\ not isWebapp(N) .
+
+**** policy allows message from webapp to network proc, but requires
+**** further checking of them being connected based on the label -
+**** that further check will deduce the actual target process and may
+**** start a new one if necessary
+ ceq policyAllows(
+       msg(ST:SyscallType,
+           payload(Num:Nat, Num':Oid, M:MsgType, V:MsgVal, L:Label,  
+                   T:typed, U:untyped)), 
+       (policy(webapp-id, network-id, M:MsgType), MP)) 
+   =  checkConnection(Num:Nat, Num':Oid, L:Label,
+        msg(ST:SyscallType, 
+          payload(Num:Nat, Num':Oid, M:MsgType, V:MsgVal, L:Label, 
+                  T:typed, U:untyped))) 
+  if isWebapp(Num:Nat) /\ isNetProc(Num':Oid) .
+
+
+**** mirrored, for the reverse direction from network process to webapp:
+ ceq policyAllows(
+       msg(ST:SyscallType, 
+           payload(Num:Nat, Num':Nat, M:MsgType, V:MsgVal, S:String, 
+                   T:typed, U:untyped)), 
+       (policy(network-id, webapp-id, M:MsgType), MP)) 
+   =  checkConnection(Num:Nat, Num':Nat,
+        msg(ST:SyscallType, 
+          payload(Num:Nat, Num':Nat, M:MsgType, V:MsgVal, S:String, 
+                  T:typed, U:untyped))) 
+  if isNetProc(Num:Nat) /\ isWebapp(Num':Nat) .
+
+**** policy allows message from UI to change current webapp to the
+**** webapp Num':Nat with MSG-SWITCH-TAB
+ ceq policyAllows(
+       msg(ST:SyscallType, 
+           payload(ui-id, Num':Nat, MSG-SWITCH-TAB, V:MsgVal, S:String, 
+                   T:typed, U:untyped)), 
+       (policy(ui-id, webapp-id, MSG-SWITCH-TAB), MP)) 
+   =  kernelDo(msg(ST:SyscallType, 
+          payload(ui-id, Num':Nat, MSG-SWITCH-TAB, V:MsgVal, S:String, 
+                  T:typed, U:untyped))) 
+  if isWebapp(Num':Nat) .
+
+
+**** policy allows message from UI to change current webapp to
+**** a new webapp loading URL with MSG-NEW-URL
+ eq policyAllows(
+       msg(ST:SyscallType, 
+           payload(ui-id, webapp-id, MSG-NEW-URL, V:MsgVal, URL:Label, 
+                   T:typed, U:untyped)), 
+       (policy(ui-id, webapp-id, MSG-NEW-URL), MP)) 
+   =  kernelDo(msg(ST:SyscallType, 
+          payload(ui-id, webapp-id, MSG-NEW-URL, V:MsgVal, URL:Label, 
+                  T:typed, U:untyped))) 
+  .
+
+**** no policy allowed this, therefore implicitly disallowed and dropped
+  eq policyAllows(M, MP) = mt [owise] .
+***** Note that the 'test-driving' messages below will partially ignore this, as they are not actual internal messages.
+endm
+
+**** No UI module:
+**** The UI is mostly found as part of webapp, and not treated
+**** separately. No full UI is being modeled, it is just about what is
+**** on the display (displayedContent) and what is the URL we are at (see
+**** displayedTopBar)
+
+
+mod KERNEL is
+**** A lot of the 'kernel' things are found above in 'KERNEL-POLICIES' instead
+  inc MSG-PIPE-BASICS .
+  inc KERNEL-POLICIES .
+  inc WEBAPPMGR .
+  inc WEBAPP .
+
+**** Page Fault and other invalid messages need not be modeled, as
+**** they are simply dropped in the actual source code, and in the
+**** model they will never be generated.
+endm
+
+mod RUN is 
+  inc MSG-PIPE-BASICS .
+  inc KERNEL-POLICIES .
+  inc KERNEL .
+
+**** example initial configuration
+  op startingConf : -> Configuration .
+  op init-proc : -> Configuration .
+  op initialPS : -> PolicySet . 
+  
+  ops init-kernel init-display
+      init-webappmgr init-cache init-cookie init-vesafb-server 
+      init-mouse-server init-network-server init-dns-server init-ui
+      init-mouse-intr init-network-intr init-nic : -> Configuration .
+
+  eq startingConf = init-kernel init-proc .
+
+**** See init-kernel in "TEST-INSTRUMENTATION"
+
+  eq init-proc = init-display
+     init-webappmgr init-cache init-cookie init-vesafb-server 
+     init-mouse-server init-network-server init-dns-server init-ui
+     init-mouse-intr init-network-intr init-nic .
+
+  eq init-display = 
+     < display-id : proc | activeWebapp(none) , displayedContent(about-blank) > .
+
+  eq init-webappmgr = 
+     < webappmgr-id : proc | nextWAN(1024) >
+     < webappmgr-id : pipe | toKernel(mt) , fromKernel(mt) > .
+  eq init-cache = 
+     < cache-id : proc | none >
+     < cache-id : pipe | toKernel(mt), fromKernel(mt) > .
+  eq init-cookie =
+     < cookie-id : proc | none >
+     < cookie-id : pipe | toKernel(mt), fromKernel(mt) > .
+  eq init-vesafb-server =
+     < vesafb-server-id : proc | none >
+     < vesafb-server-id : pipe | toKernel(mt), fromKernel(mt) > .
+  eq init-mouse-server =
+     < mouse-server-id : proc | none >
+     < mouse-server-id : pipe | toKernel(mt), fromKernel(mt) > .
+  eq init-network-server =
+     < network-server-id : proc | none >
+     < network-server-id : pipe | toKernel(mt), fromKernel(mt) > .
+  eq init-dns-server =
+     < dns-server-id : proc | none >
+     < dns-server-id : pipe | toKernel(mt), fromKernel(mt) > .
+  eq init-ui = 
+     < ui-id : proc | none > 
+     < ui-id : pipe | toKernel(mt), fromKernel(mt) > .
+  eq init-mouse-intr = 
+     < mouse-intr-id : proc | none >
+     < mouse-intr-id : pipe | toKernel(mt), fromKernel(mt) > .
+  eq init-network-intr = 
+     < mouse-intr-id : proc | none >
+     < mouse-intr-id : pipe | toKernel(mt), fromKernel(mt) > .
+
+**** Simplified NIC version that just has incoming and outgoing
+**** 'ethernet frames' that are actually only their URL.
+  eq init-nic = 
+     < 0 : nic | in(mtLL) , out(mtLL) > .
+
+**** define the initial policy set using helping operators, one for each policy, for either plug/play
+  eq initialPS = msg-webapp-ui , msg-webapp-cookie , msg-webapp-network ,
+                 msg-webapp-storage , msg-ui-webapp , msg-network-cookie ,
+                 msg-network-webapp , msg-cookie-webapp , msg-cookie-network ,
+                 msg-storage-webapp , msg-storage-ui .
+
+**** set WEBAPP to UI
+  op msg-webapp-ui : -> PolicySet .
+  eq msg-webapp-ui = policy(webapp-id, ui-id, MSG-UI-MSG) .
+**** set WEBAPP to COOKIE
+  op msg-webapp-cookie : -> PolicySet .
+  eq msg-webapp-cookie = policy(webapp-id, cookie-id, MSG-DOM-COOKIE-SET) ,
+                         policy(webapp-id, cookie-id, MSG-DOM-COOKIE-GET) . 
+**** set WEBAPP to NETWORK
+  op msg-webapp-network : -> PolicySet .
+  eq msg-webapp-network = policy(webapp-id, network-id, MSG-FETCH-URL) ,
+                          policy(webapp-id, network-id, MSG-FETCH-URL-ABORT) .
+**** set WEBAPP to STORAGE
+  op msg-webapp-storage : -> PolicySet .
+  eq msg-webapp-storage = policy(webapp-id, storage-id, MSG-WRITE-FILE) ,
+                          policy(webapp-id, storage-id, MSG-READ-FILE) .
+**** set UI to WEBAPP
+  op msg-ui-webapp : -> PolicySet .  
+  eq msg-ui-webapp = policy(ui-id, webapp-id, MSG-WEBAPP-MSG) ,
+                     policy(ui-id, webapp-id, MSG-SWITCH-TAB) ,
+                     policy(ui-id, webapp-id, MSG-NEW-URL) .
+**** set NETWORK to COOKIE
+  op msg-network-cookie : -> PolicySet .
+  eq msg-network-cookie = policy(network-id, cookie-id, MSG-COOKIE-SET) , 
+                          policy(network-id, cookie-id, MSG-COOKIE-GET) .
+**** set NETWORK to WEBAPP
+  op msg-network-webapp : -> PolicySet .
+  eq msg-network-webapp = policy(network-id, webapp-id, MSG-RETURN-URL) ,
+                          policy(network-id, webapp-id, MSG-RETURN-URL-METADATA) .
+**** set COOKIE to WEBAPP
+  op msg-cookie-webapp : -> PolicySet .
+  eq msg-cookie-webapp = policy(cookie-id, webapp-id, MSG-DOM-COOKIE-GET-RETURN) .
+**** set COOKIE to NETWORK
+  op msg-cookie-network : -> PolicySet .
+  eq msg-cookie-network = policy(cookie-id, network-id, MSG-COOKIE-GET-RETURN) . 
+**** set STORAGE to WEBAPP
+  op msg-storage-webapp : -> PolicySet .
+  eq msg-storage-webapp = policy(storage-id, webapp-id, MSG-READ-FILE-RETURN) . 
+**** set STORAGE to UI
+  op msg-storage-ui : -> PolicySet .
+  eq msg-storage-ui = policy(storage-id, ui-id, MSG-DOWNLOAD-INFO) .
+**** more policies could be at line 256ff in ibos_source/dKernel/access.cc
+endm
+
+mod TEST-INSTRUMENTATION is
+  inc RUN .
+
+ **** this is for testing instrumentation only!
+ sort Cmd .
+ sort CmdList .
+ subsort Cmd < CmdList .
+ op mtCmdList : -> CmdList .
+ op _,_ : CmdList CmdList -> CmdList [assoc comm id: mtCmdList] .
+ op cmd : CmdList -> Attribute [ctor] .
+ op testMsg : -> Cid .
+ op testMsg : -> Oid .
+
+ op new-url : Label -> Cmd .
+ op switch-tab : -> Cmd .
+
+
+ ops Url1 Url2 Url3 Url4 : -> Label . 
+
+ vars Att Att2 Att3 : AttributeSet .
+
+op url : Nat -> Label .
+
+op inspect : -> Cmd .
+op inspect : Nat -> Cmd .
+rl inspect => inspect(3) .
+rl inspect(0) => mtCmdList .
+rl inspect(s(N:Nat)) => new-url(url(1)) , inspect(N:Nat) .
+rl inspect(s(N:Nat)) => new-url(url(2)) , inspect(N:Nat) .
+rl inspect(s(N:Nat)) => new-url(url(3)) , inspect(N:Nat) .
+rl inspect(s(N:Nat)) => switch-tab , inspect(N:Nat) .
+
+op inspect-space :  -> Configuration .
+eq inspect-space = 
+      < testMsg : testMsg | cmd( inspect(3) ) > .
+
+
+rl [testNewUrl] :
+  < kernel-id : kernel | 
+      handledCurrently(mt) , 
+      Att >
+  < testMsg : testMsg | cmd( new-url(L:Label) , CMDList:CmdList ) >
+=> 
+  < kernel-id : kernel | 
+      handledCurrently(kernelDo(
+             msg(OPOS-SYSCALL-FD-SEND-MESSAGE, 
+                 payload(ui-id, webapp-id, MSG-NEW-URL, 0, L:Label, 
+                         mtTyped, mtUntyped)))) , 
+      Att >
+  < testMsg : testMsg | cmd( CMDList:CmdList ) >
+.
+
+rl [testTabSwitch] :
+  < testMsg : testMsg | cmd( switch-tab , CMDList:CmdList ) >
+  < kernel-id : kernel | 
+      handledCurrently(mt) , 
+      weblabels(pi(N':Nat, L':Label), WPIS:WebappProcInfoSet) , 
+      Att >
+  =>
+  < testMsg : testMsg | cmd( CMDList:CmdList ) >
+  < kernel-id : kernel | 
+      handledCurrently(kernelDo(
+             msg(OPOS-SYSCALL-FD-SEND-MESSAGE, 
+                 payload(ui-id, N':Nat, MSG-SWITCH-TAB, 0, about-blank, 
+                         mtTyped, mtUntyped)))) ,
+      weblabels(pi(N':Nat, L':Label), WPIS:WebappProcInfoSet) , 
+      Att >
+.
+
+
+op init-simp-kernel : -> Configuration .
+**** base that all initial states for tests will be created on in analysis.
+  eq init-simp-kernel 
+    = < kernel-id : kernel | 
+          handledCurrently(mt) , 
+          msgPolicy(initialPS) , 
+          nextNetworkProc(256) ,
+          weblabels(mtWPIS) ,
+          networklabels(mtNPIS) ,
+          displayedTopBar(about-blank) > 
+       init-proc .
+
+
+***** purely experimental driver for messages! 
+  eq init-kernel 
+    = < kernel-id : kernel | 
+          handledCurrently(mt) , 
+          msgPolicy(initialPS) , 
+          nextNetworkProc(256) ,
+          weblabels(pi(1050,l(http,dom("test"),port(80)))) ,
+          networklabels(mtNPIS)  ,
+          displayedTopBar(about-blank) > 
+      < 1050 : proc | rendered(about-blank) , URL(l(http, dom("test"), port(81))) , loading(1) >
+ **** simplify this by putting loading(0) and removing the whole message, then the first message is added and executed the same way without having to spell it out
+      < 1050 : pipe | toKernel(
+              msg(OPOS-SYSCALL-FD-SEND-MESSAGE, 
+              payload(1050, 500, 
+                      MSG-FETCH-URL, 0, 
+                      l(http,dom("test"),port(81)), 
+                      mtTyped, mtUntyped))
+               ) , 
+                      fromKernel(mt) >
+      < 0 : nic | in(mtLL) , out(mtLL) >
+    .
+endm

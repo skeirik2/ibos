@@ -1,0 +1,107 @@
+load ibos.maude
+
+mod IBOS-PRED-INIT is
+  pr KERNEL-POLICIES .
+
+  op init : Sys -> [Bool] .
+
+  eq [init]:
+     init(
+       { < 0 : nic | in(mtLL),out(mtLL) > 
+         < id(s(0)) : kernel | 
+           msgPolicy(
+	     policy(id(s(s(s(0)))), id(s(s(s(s(0))))), MSG-FETCH-URL), 
+	     policy(id(s(s(s(0)))), id(s(s(s(s(0))))), MSG-FETCH-URL-ABORT),
+	     policy(id(s(s(s(0)))), id(s(s(s(s(s(s(0))))))), MSG-DOM-COOKIE-SET),
+	     policy(id(s(s(s(0)))), id(s(s(s(s(s(s(0))))))), MSG-DOM-COOKIE-GET),
+	     policy(id(s(s(s(0)))), id(s(s(s(s(s(s(s(s(s(s(s(0)))))))))))), MSG-UI-MSG),
+	     policy(id(s(s(s(0)))), id(s(s(s(s(s(s(s(s(s(s(s(s(s(s(0))))))))))))))), MSG-WRITE-FILE),
+	     policy(id(s(s(s(0)))), id(s(s(s(s(s(s(s(s(s(s(s(s(s(s(0))))))))))))))), MSG-READ-FILE),
+	     policy(id(s(s(s(s(0))))), id(s(s(s(0)))), MSG-RETURN-URL),
+	     policy(id(s(s(s(s(0))))), id(s(s(s(0)))), MSG-RETURN-URL-METADATA),
+	     policy(id(s(s(s(s(0))))), id(s(s(s(s(s(s(0))))))), MSG-COOKIE-SET),
+	     policy(id(s(s(s(s(0))))), id(s(s(s(s(s(s(0))))))), MSG-COOKIE-GET),
+	     policy(id(s(s(s(s(s(s(0))))))), id(s(s(s(0)))), MSG-DOM-COOKIE-GET-RETURN),
+	     policy(id(s(s(s(s(s(s(0))))))), id(s(s(s(s(0))))), MSG-COOKIE-GET-RETURN),
+	     policy(id(s(s(s(s(s(s(s(s(s(s(s(0)))))))))))), id(s(s(s(0)))), MSG-NEW-URL),
+	     policy(id(s(s(s(s(s(s(s(s(s(s(s(0)))))))))))), id(s(s(s(0)))), MSG-SWITCH-TAB),
+	     policy(id(s(s(s(s(s(s(s(s(s(s(s(0)))))))))))), id(s(s(s(0)))), MSG-WEBAPP-MSG),
+	     policy(id(s(s(s(s(s(s(s(s(s(s(s(s(s(s(0))))))))))))))), id(s(s(s(0)))), MSG-READ-FILE-RETURN),
+	     policy(id(s(s(s(s(s(s(s(s(s(s(s(s(s(s(0))))))))))))))), id(s(s(s(s(s(s(s(s(s(s(s(0)))))))))))), MSG-DOWNLOAD-INFO)),
+    	   nextNetworkProc(s(s(0))),
+	   handledCurrently(none),
+	   weblabels(mtWPIS),
+	   networklabels(mtNPIS),
+	   displayedTopBar(about-blank) > 
+         < id(s(s(0))) : proc | nextWAN(s(s(s(s(s(s(0))))))) > < id(s(s(0))) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(s(s(s(s(s(0)))))) : proc | none > < id(s(s(s(s(s(0)))))) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(s(s(s(s(s(s(0))))))) : proc | none > < id(s(s(s(s(s(s(0))))))) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(s(s(s(s(s(s(s(0)))))))) : proc | none > < id(s(s(s(s(s(s(s(0)))))))) : pipe | fromKernel(mt), toKernel(mt) > 
+       	 < id(s(s(s(s(s(s(s(s(0))))))))) : proc | none > < id(s(s(s(s(s(s(s(s(0))))))))) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(s(s(s(s(s(s(s(s(s(0)))))))))) : proc | none > < id(s(s(s(s(s(s(s(s(s(0)))))))))) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(s(s(s(s(s(s(s(s(s(s(0))))))))))) : proc | none > < id(s(s(s(s(s(s(s(s(s(s(0))))))))))) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(s(s(s(s(s(s(s(s(s(s(s(0)))))))))))) : proc | none > < id(s(s(s(s(s(s(s(s(s(s(s(0)))))))))))) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(s(s(s(s(s(s(s(s(s(s(s(s(0))))))))))))) : proc | none > < id(s(s(s(s(s(s(s(s(s(s(s(s(0))))))))))))) : pipe | fromKernel(mt),toKernel(mt) >
+       	 < id(s(s(s(s(s(s(s(s(s(s(s(s(s(0)))))))))))))) : proc | none > < id(s(s(s(s(s(s(s(s(s(s(s(s(s(0)))))))))))))) : pipe | fromKernel(mt),toKernel(mt) > 
+       	 < id(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(0)))))))))))))))) : proc | activeWebapp(id(0)),displayedContent(about-blank) >
+       })
+   = true .
+endm
+
+mod IBOS-PRED-UNIQUE-KERNEL is
+  pr KERNEL .
+
+  var  Att         : AttributeSet .
+  vars Att1 Att2   : AttributeSet .
+  var  C           : Cid .
+  var  Cnf         : Configuration .
+  vars P P1 P2     : ProcId .
+
+  op unique-kernel : Sys -> [Bool] .
+ ceq [unique-kernel-0] :
+     unique-kernel( { Cnf } )
+   = false
+  if no-kernel(Cnf) .
+  eq [unique-kernel-1] :
+     unique-kernel( { < P : kernel | Att > Cnf } )
+   = no-kernel(Cnf) .
+  eq [unique-kernel-2] :
+     unique-kernel( { < P1 : kernel | Att1 > < P2 : kernel | Att2 > Cnf } )
+   = false .
+  
+  op no-kernel : Configuration -> Bool .
+  eq no-kernel(none)
+   = true .
+  eq no-kernel( < P : kernel | Att > Cnf )
+   = false .
+  eq no-kernel( < P : proc | Att > Cnf )
+   = no-kernel(Cnf) .
+  eq no-kernel( < P : nic | Att > Cnf )
+   = no-kernel(Cnf) .
+  eq no-kernel( < P : mem | Att > Cnf )
+   = no-kernel(Cnf) .
+  eq no-kernel( < P : pipe | Att > Cnf )
+   = no-kernel(Cnf) .
+endm
+
+**** The policy does not change
+mod IBOS-PRED-IMMUTABLE-POLICY is
+  pr KERNEL .
+
+  op immutable-policy : Sys PolicySet -> [Bool] .
+
+  var  Att    : AttributeSet .
+  var  Cnf    : Configuration .
+  var  PS     : PolicySet .
+
+  eq [immutable-policy]:
+     immutable-policy({ < id(s(0)) : kernel | msgPolicy(PS), Att > Cnf }, PS)
+   = true .
+endm
+
+*** IBOS predicates
+mod IBOS-PREDS is
+  pr IBOS-PRED-INIT .
+  pr IBOS-PRED-UNIQUE-KERNEL .
+  pr IBOS-PRED-IMMUTABLE-POLICY .
+endm

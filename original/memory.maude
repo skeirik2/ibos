@@ -1,0 +1,201 @@
+**** Relevant files are
+**** ibos_kernel/sys/kern/proc.cc/h
+**** ibos_kernel/sys/kern/server.cc
+**** ibos_kernel/sys/kern/service.cc
+**** ibos_kernel/sys/kern/webappmgr.cc
+
+in ibos.maude
+
+mod MEMORY is 
+ **** bypassing sending through the kernel - the expected issue should show up for exclusively honest participants already - also note how the simplification of what content is displayed will be removed and instead it will be handled by the page-table and specific video memory
+inc RUN .
+inc TEST-INSTRUMENTATION .
+
+**** adding explicit memory, we only care about null memory, the actual video memory and any other memory - we do not model buffer overflows or sizes of any kind.
+ sort Memory .
+ op nullMemory : -> Memory [ctor] .
+ op videoMemory : -> Memory [ctor] .
+ op otherMemory : -> Memory [ctor] .
+
+ sort PGTE .
+ op pg-table-entry : ProcId Memory -> PGTE [ctor] .
+ sort PGTESet .
+ subsort PGTE < PGTESet .
+ op mtPGTEs : -> PGTESet .
+ op _,_ : PGTESet PGTESet -> PGTESet [assoc comm id: mtPGTEs] .
+ op pg-table : PGTESet -> Attribute [ctor] .
+
+ op vidMem : Label -> Attribute [ctor] . *** kernel
+
+ **** this is for testing instrumentation only!
+op initial-test : -> Configuration .
+eq initial-test
+    = < kernel-id : kernel | 
+          handledCurrently(mt) , 
+          msgPolicy(mtPS) , **** should be 'initialPS', left empty intentionally 
+          nextNetworkProc(256) ,
+          weblabels(mtWPIS) ,
+          networklabels(mtNPIS)  ,
+          displayedTopBar(Url1) ,
+          pg-table(pg-table-entry(1050, videoMemory)) ,
+          activeWebapp(1050) ,
+          vidMem(Url1) 
+      > 
+      init-webappmgr
+      < 1050 : proc | rendered(Url1), URL(Url1), loading(1) >
+      < 1050 : pipe | toKernel(mt) , 
+                      fromKernel(mt) > 
+   .
+
+**** the message below is designed to trigger the display error (empty
+**** display!) that happens due to page table misses being required
+**** for a proper update of the video memory pointer
+op bug-trigger : -> Configuration .
+eq bug-trigger = 
+      < testMsg : testMsg | cmd( new-tab(Url2) , 
+                                 update(1050, Url3) , tab-switch(1050)) > .
+
+
+ op new-tab : Label -> Cmd . 
+ op update : Oid Label -> Cmd .
+ op tab-switch : Oid -> Cmd .
+
+op url : Nat -> Label .
+op new-tab : -> Cmd .
+rl new-tab => new-tab(url(1)) .
+rl new-tab => new-tab(url(2)) .
+rl new-tab => new-tab(url(3)) .
+op update : -> Cmd .
+op update : Label -> Cmd .
+rl update => update(url(1)) .
+rl update => update(url(2)) .
+rl update => update(url(3)) .
+op tab-switch : -> Cmd .
+
+**** both update and tab-switch only use web-apps as the process they work with
+rl  < testMsg : testMsg | cmd ( update(U:Label), CMDList:CmdList) >
+     < N:Nat : proc | rendered(U':Label), URL(U'':Label), loading(N':Nat) >
+ => < testMsg : testMsg | cmd ( update(N:Nat, U:Label), CMDList:CmdList) >
+     < N:Nat : proc | rendered(U':Label), URL(U'':Label), loading(N':Nat) >
+ .
+
+**** both update and tab-switch only use web-apps as the process they work with
+rl  < testMsg : testMsg | cmd ( tab-switch, CMDList:CmdList) >
+     < N:Nat : proc | rendered(U':Label), URL(U'':Label), loading(N':Nat) >
+ => < testMsg : testMsg | cmd ( tab-switch(N:Nat), CMDList:CmdList) >
+     < N:Nat : proc | rendered(U':Label), URL(U'':Label), loading(N':Nat) >
+ .
+
+op explore : -> Cmd .
+op explore : Nat -> Cmd .
+rl explore => explore(3) .
+rl explore(0) => mtCmdList .
+rl explore(s(N:Nat)) => new-tab , explore(N:Nat) .
+rl explore(s(N:Nat)) => update , explore(N:Nat) .
+rl explore(s(N:Nat)) => tab-switch , explore(N:Nat) .
+
+op explore-space :  -> Configuration .
+eq explore-space = 
+      < testMsg : testMsg | cmd( explore(3) ) > .
+
+
+rl < testMsg : testMsg | cmd ( new-tab(U:Label), CMDList:CmdList) >
+   < kernel-id : kernel | 
+          Att1:AttributeSet ,
+          displayedTopBar(U1:Label) ,
+          pg-table(pg-table-entry(N2:Nat, videoMemory), pg:PGTESet) ,
+          activeWebapp(N2:Nat) ,
+          vidMem(U1:Label) 
+      >
+     < webappmgr-id : proc | nextWAN(N:Nat) >
+ => < testMsg : testMsg | cmd ( CMDList:CmdList) >
+    < kernel-id : kernel | 
+          Att1:AttributeSet ,
+          displayedTopBar(U:Label) ,
+          pg-table(pg-table-entry(N2:Nat, nullMemory), pg-table-entry(N:Nat, videoMemory), pg:PGTESet) ,
+          activeWebapp(N:Nat) ,
+          vidMem(U:Label) 
+      >
+     < N:Nat : proc | rendered(U:Label), URL(U:Label), loading(1) >
+     < N:Nat : pipe | fromKernel(mt) , toKernel(mt) >
+     < webappmgr-id : proc | nextWAN(s(N:Nat)) >
+ .
+
+
+**** For this we do not care about an update to the currently active webapp and assume that will work. Meaning, we ignore the case N==N2.
+crl < testMsg : testMsg | cmd ( update(N:Nat, U:Label), CMDList:CmdList) >
+   < kernel-id : kernel | 
+          Att1:AttributeSet ,
+          displayedTopBar(U1:Label) ,
+          pg-table(pg-table-entry(N:Nat, nullMemory), pg:PGTESet) ,
+          activeWebapp(N2:Nat) ,
+          vidMem(U1:Label) 
+      >
+      < N:Nat : proc | rendered(U2:Label), URL(U2:Label), loading(1) >
+=> < testMsg : testMsg | cmd ( CMDList:CmdList) >
+   < kernel-id : kernel | 
+          Att1:AttributeSet ,
+          displayedTopBar(U1:Label) ,
+          pg-table(pg-table-entry(N:Nat, otherMemory), pg:PGTESet) , 
+          activeWebapp(N2:Nat) ,
+          vidMem(U1:Label) 
+      >
+      < N:Nat : proc | rendered(U:Label), URL(U:Label), loading(1) >
+ if N:Nat =/= N2:Nat 
+ .
+
+crl < testMsg : testMsg | cmd ( tab-switch(N:Nat), CMDList:CmdList) >
+    < kernel-id : kernel | 
+          Att1:AttributeSet ,
+          displayedTopBar(U1:Label) ,
+          pg-table(pg-table-entry(N:Nat, nullMemory), pg-table-entry(N2:Nat, videoMemory), pg:PGTESet) ,
+          activeWebapp(N2:Nat) ,
+          vidMem(U1:Label) 
+      >
+      < N:Nat : proc | rendered(U2:Label), URL(U2:Label), loading(1) >
+=>  < testMsg : testMsg | cmd (CMDList:CmdList) >
+    < kernel-id : kernel | 
+          Att1:AttributeSet ,
+          displayedTopBar(U2:Label) ,
+          pg-table(pg-table-entry(N:Nat, videoMemory), pg-table-entry(N2:Nat, nullMemory), pg:PGTESet) , **** this is the crux - as it is not connected (nullMemory), there will be the expected page-fault for N:Nat, so it will be remapped to the actual video memory, and thus normal operation continues
+          activeWebapp(N:Nat) ,
+          vidMem(about-blank) 
+      >
+      < N:Nat : proc | rendered(U2:Label), URL(U2:Label), loading(1) >
+ if N:Nat =/= N2:Nat 
+.
+endm
+
+
+mod CRUCIAL-RULE-BAD is
+inc MEMORY .
+crl < testMsg : testMsg | cmd ( tab-switch(N:Nat), CMDList:CmdList) >
+    < kernel-id : kernel | 
+          Att1:AttributeSet ,
+          displayedTopBar(U1:Label) ,
+          pg-table(pg-table-entry(N:Nat, otherMemory), pg-table-entry(N2:Nat, videoMemory), pg:PGTESet) ,
+          activeWebapp(N2:Nat) ,
+          vidMem(U1:Label) 
+      >
+      < N:Nat : proc | rendered(U2:Label), URL(U2:Label), loading(1) >
+=>  < testMsg : testMsg | cmd (CMDList:CmdList) >
+    < kernel-id : kernel | 
+          Att1:AttributeSet ,
+          displayedTopBar(U2:Label) ,
+          pg-table(pg-table-entry(N:Nat, otherMemory), pg-table-entry(N2:Nat, nullMemory), pg:PGTESet) , **** this is the crux - as there is already a connection here, there will be no page-fault for N:Nat, so it will NOT be remapped to the actual video memory, and thus the screen shall stay blank
+          activeWebapp(N:Nat) ,
+          vidMem(about-blank) 
+      >
+      < N:Nat : proc | rendered(U2:Label), URL(U2:Label), loading(1) >
+ if N:Nat =/= N2:Nat 
+.
+endm
+
+***> This is the search to find the cause of the empty display.
+search initial-test explore-space =>! X:Configuration < kernel-id : kernel | Att:AttributeSet , vidMem(about-blank) , activeWebapp(N:Nat) , pg-table(pg-table-entry(N:Nat, otherMemory), pg:PGTESet) > .
+
+
+***> This exposes the bug of the empty display. The issue is that the active webapp (which will be 1050) in the page table is mapped to some random memory that is not the video memory. So, any changes it makes there have no effect.
+search initial-test bug-trigger =>! X:Configuration < kernel-id : kernel | Att:AttributeSet , vidMem(about-blank) , activeWebapp(N:Nat) , pg-table(pg-table-entry(N:Nat, otherMemory), pg:PGTESet) > .
+
+**** To fix this we simply use a memory model where this error cannot happen and assume that the actual code can do this now that the bug is known. We do so in ibos.maude and analysis.maude

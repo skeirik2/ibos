@@ -1,0 +1,8 @@
+Maude> (scc KERNEL .)
+rewrites: 1027061 in 1048ms cpu (1046ms real) (979958 rewrites/second)
+Sufficient completeness check for KERNEL
+           Completeness counter-examples: none were found
+           Freeness counter-examples: none were found
+           Analysis: it is not complete and it is sound
+           Ground weak termination: not proved
+           Ground sort-decreasingness: not proved

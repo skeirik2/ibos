@@ -1,0 +1,232 @@
+in ibos.maude
+
+**** Pick either 'inspect-space' or the 2-command fixed test:
+**** < testMsg : testMsg | cmd( new-url(url(2)) , new-url(url(3)) ) > 
+
+
+*** This is a simple state space exploration that picks out a large
+*** number of result states with this property. This is a check to
+*** ensure the model does work as expected.
+***> This is just a state space exploration picking out those with appropriate messages to a network process
+---(
+search init-simp-kernel 
+< testMsg : testMsg | cmd( new-url(url(2)) , new-url(url(3)) ) > 
+=>*
+  X:Configuration
+  < N:Nat : pipe | 
+        toKernel(ML:MessageList) , 
+        fromKernel(msg(OPOS-SYSCALL-FD-SEND-MESSAGE,
+                   payload(Num:Nat, N:Nat, MSG-FETCH-URL, 
+                           V:MsgVal, L:Label, T:typed, U:untyped)), 
+                    ML':MessageList) , Att:AttributeSet > 
+  < kernel-id : kernel | Att2:AttributeSet ,
+          weblabels(pi(Num:Nat,L':Label),WAPIS:WebappProcInfoSet) ,
+          networklabels(pi(N:Nat, L':Label, L:Label), NPIS:NetworkProcInfoSet)  ,
+          displayedTopBar(URL:Label) > 
+  .
+)
+
+**** Made into a topmost search (by Camilo)
+search { init-simp-kernel  < testMsg : testMsg | cmd( new-url(url(2)) , new-url(url(3)) ) > }
+=>*
+{ X:Configuration
+  < N:Nat : pipe | 
+        toKernel(ML:MessageList) , 
+        fromKernel(msg(OPOS-SYSCALL-FD-SEND-MESSAGE,
+                   payload(Num:Nat, N:Nat, MSG-FETCH-URL, 
+                           V:MsgVal, L:Label, T:typed, U:untyped)), 
+                    ML':MessageList) , Att:AttributeSet > 
+  < id(1) : kernel | Att2:AttributeSet ,
+          weblabels(pi(Num:Nat,L':Label),WAPIS:WebappProcInfoSet) ,
+          networklabels(pi(N:Nat, L':Label, L:Label), NPIS:NetworkProcInfoSet)  ,
+          displayedTopBar(URL:Label) > }
+  .
+
+eof
+
+***> This checks for address bar correctness. No solution means that there is no mismatch possible, and thus the address bar is correct.
+---(
+search init-simp-kernel inspect-space
+=>*
+  X:Configuration
+  < kernel-id : kernel | Att:AttributeSet ,
+          displayedTopBar(URL:Label) > 
+  < display-id : proc | 
+    displayedContent(URL':Label),
+    Att2:AttributeSet >
+such that URL:Label =/= URL':Label and URL:Label =/= about-blank and URL':Label =/= about-blank .
+)
+
+**** Made into a topmost search (by Camilo)
+search { init-simp-kernel inspect-space }
+=>*
+{  X:Configuration
+  < id(1) : kernel | Att:AttributeSet ,
+          displayedTopBar(URL:Label) > 
+  < id(15) : proc | 
+    displayedContent(URL':Label),
+    Att2:AttributeSet > }
+such that URL:Label =/= URL':Label and URL:Label =/= about-blank and URL':Label =/= about-blank .
+
+*** Test added to check that the invariant to be proven is indeed an invariant
+*** for the set of initial states (by Camilo)
+****
+*** The outcome of this test should be the same as the one in the previous search
+mod TEST is
+  pr TEST-INSTRUMENTATION .
+  pr IBOS-PREDS .
+endm
+
+search { inspect-space init-simp-kernel } =>* X:Sys such that inv(X:Sys) =/= true .
+
+eof
+
+***> All network requests from web page instances go to proper network process (1); thus no solution with mismatched labeling exists. 
+---(
+search init-simp-kernel 
+inspect-space
+=>*
+  X:Configuration
+  < N:Nat : pipe | 
+        toKernel(ML:MessageList) , 
+        fromKernel(msg(OPOS-SYSCALL-FD-SEND-MESSAGE,
+                   payload(Num:Nat, N:Nat, MSG-FETCH-URL, 
+                           V:MsgVal, L1:Label, T:typed, U:untyped)), 
+                    ML':MessageList) , Att:AttributeSet > 
+  < kernel-id : kernel | Att2:AttributeSet ,
+          weblabels(pi(Num:Nat,L1':Label),WAPIS:WebappProcInfoSet) ,
+          networklabels(pi(N:Nat, L2':Label, L2:Label), NPIS:NetworkProcInfoSet)  ,
+          displayedTopBar(URL:Label) > 
+ such that  L1:Label =/= L2:Label or L1':Label =/= L2':Label .
+)
+**** Made into a topmost search (by Camilo)
+search { init-simp-kernel inspect-space }
+=>*
+{  X:Configuration
+  < N:Nat : pipe | 
+        toKernel(ML:MessageList) , 
+        fromKernel(msg(OPOS-SYSCALL-FD-SEND-MESSAGE,
+                   payload(Num:Nat, N:Nat, MSG-FETCH-URL, 
+                           V:MsgVal, L1:Label, T:typed, U:untyped)), 
+                    ML':MessageList) , Att:AttributeSet > 
+  < id(1) : kernel | Att2:AttributeSet ,
+          weblabels(pi(Num:Nat,L1':Label),WAPIS:WebappProcInfoSet) ,
+          networklabels(pi(N:Nat, L2':Label, L2:Label), NPIS:NetworkProcInfoSet)  ,
+          displayedTopBar(URL:Label) > }
+ such that  L1:Label =/= L2:Label or L1':Label =/= L2':Label .
+
+***> Incoming Ethernet Frame gets put to the right network process memory (2); thus no solution exists with a mismatched labeling:
+---(
+search init-simp-kernel 
+inspect-space
+=>*
+  X:Configuration
+  < N:Nat : mem | in(L1:Label, Ll:LabelList), Att:AttributeSet >
+  < kernel-id : kernel | 
+     networklabels(pi(N:Nat, L':Label, L2:Label), NPIS:NetworkProcInfoSet) ,
+       Att2:AttributeSet > 
+  such that L1:Label =/= L2:Label .
+)
+**** Made into a topmost search (by Camilo)
+search { init-simp-kernel inspect-space }
+=>*
+{  X:Configuration
+  < N:Nat : mem | in(L1:Label, Ll:LabelList), Att:AttributeSet >
+  < id(1) : kernel | 
+     networklabels(pi(N:Nat, L':Label, L2:Label), NPIS:NetworkProcInfoSet) ,
+       Att2:AttributeSet > }
+  such that L1:Label =/= L2:Label .
+
+***> Ethernet Frame from a network proc DMA memory to the NIC matches origin of network proc (3); thus no solution exists where labels mismatch.
+---(
+search init-simp-kernel 
+inspect-space
+=>*
+  X:Configuration
+  < N:Nat : mem | out(L1:Label) , Att:AttributeSet > 
+  < kernel-id : kernel | 
+    networklabels(pi(N:Nat, L':Label, L2:Label), NPIS:NetworkProcInfoSet) ,
+       Att2:AttributeSet >
+ such that L1:Label =/= L2:Label .
+)
+**** Made into a topmost search (by Camilo)
+search { init-simp-kernel inspect-space }
+=>*
+{  X:Configuration
+  < N:Nat : mem | out(L1:Label) , Att:AttributeSet > 
+  < id(1) : kernel | 
+    networklabels(pi(N:Nat, L':Label, L2:Label), NPIS:NetworkProcInfoSet) ,
+       Att2:AttributeSet > }
+ such that L1:Label =/= L2:Label .
+
+***> The return message from a network process to a web page instance only has data from an appropriate source (4); the labeling for webapp, network proc and the data match, so no solution is found where there is a mismatch
+---(
+search init-simp-kernel 
+inspect-space
+=>*
+  X:Configuration
+  < N:Nat : proc | rendered(Lll:Label) , URL(L'':Label) ,loading(1) , Att:AttributeSet >
+  < N:Nat : pipe | fromKernel(
+                 msg(OPOS-SYSCALL-FD-SEND-MESSAGE,
+                     payload(N':Nat, N:Nat, MSG-RETURN-URL, V:MsgVal, L2:Label, T:typed, U:untyped)),
+                   ML:MessageList) , Att2:AttributeSet >
+  < kernel-id : kernel | 
+    weblabels(pi(N:Nat, L':Label), WAPIS:WebappProcInfoSet) ,
+    networklabels(pi(N':Nat, L':Label, L1:Label), NPIS:NetworkProcInfoSet) ,
+       Att3:AttributeSet >
+such that L1:Label =/= L2:Label 
+ .
+)
+**** Made into a topmost search (by Camilo)
+search { init-simp-kernel inspect-space }
+=>*
+{  X:Configuration
+  < N:Nat : proc | rendered(Lll:Label) , URL(L'':Label) ,loading(1) , Att:AttributeSet >
+  < N:Nat : pipe | fromKernel(
+                 msg(OPOS-SYSCALL-FD-SEND-MESSAGE,
+                     payload(N':Nat, N:Nat, MSG-RETURN-URL, V:MsgVal, L2:Label, T:typed, U:untyped)),
+                   ML:MessageList) , Att2:AttributeSet >
+  < id(1) : kernel | 
+    weblabels(pi(N:Nat, L':Label), WAPIS:WebappProcInfoSet) ,
+    networklabels(pi(N':Nat, L':Label, L1:Label), NPIS:NetworkProcInfoSet) ,
+       Att3:AttributeSet > }
+such that L1:Label =/= L2:Label 
+ .
+
+***> (5) again holds by the construction of the model (including policies).
+
+***> (6) holds by construction in the model as the web page content is [displayedContent() of <display-id : ...>] and the browser chrome is elements of the kernel [displayedTopBar in kernel]
+
+***> (7) holds by construction as all input is given to the kernel which passes it to the active webapp (mouse/keyboard are not explicitly modeled); the screen access is a corollary of (9) and the address bar correctness.
+
+***> (8) holds by construction. Each component in the model can only perform its assigned (modeled!) functions.
+
+***>  The URL of the current tab is displayed to the user (9) - that is, there is NEVER a mismatch between the URL of the currently active webapp [URL' of W] and the address bar [URL of displayedTopBar in the kernel]. No solutions found means this is true!
+---(
+search init-simp-kernel 
+inspect-space
+=>*
+  X:Configuration
+  < kernel-id : kernel | Att:AttributeSet ,
+          displayedTopBar(URL:Label) > 
+  < display-id : proc | 
+    activeWebapp(W:ProcId),
+    Att2:AttributeSet >
+  < W:ProcId : proc | 
+    URL(URL':Label),
+    Att3:AttributeSet >
+such that URL:Label =/= URL':Label  .
+)
+**** Made into a topmost search (by Camilo)
+search { init-simp-kernel inspect-space }
+=>*
+ { X:Configuration
+  < id(1) : kernel | Att:AttributeSet ,
+          displayedTopBar(URL:Label) > 
+  < id(15) : proc | 
+    activeWebapp(W:ProcId),
+    Att2:AttributeSet >
+  < W:ProcId : proc | 
+    URL(URL':Label),
+    Att3:AttributeSet > }
+such that URL:Label =/= URL':Label  .
