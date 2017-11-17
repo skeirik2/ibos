@@ -1,0 +1,1683 @@
+***(
+
+    This file is part of InvA, Maude's Invariant Analyzer Tool.
+
+    Copyright (C) 2008-2012 Camilo Rocha, camilo.rocha@gmail.com
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+)
+
+****                                                      Main file and modules
+****                                                       Author: Camilo Rocha
+****                                      Invariant Analyzer specification 0.2a
+----   To be run on Maude 2.6 with Full Maude 2.6e and Church-Rosser Checker 3m
+----                                and Maude with hook for the CVC3 SMT solver
+
+load full-maude26e.maude .
+load crchc3m.maude .
+
+-----------------
+--- utilities ---
+-----------------
+
+---- term utilities
+fmod TERM-UTILS is
+  pr SUBSTITUTIONSET .
+
+  var  C             : Constant .
+  vars EqC           : EqCondition .
+  var  Q             : Qid .
+  vars Subst         : Substitution .
+  vars T1 T2         : Term .
+  vars TL TL'        : TermList .
+  var  V             : Variable .
+
+  --- application of a substitution to an equational condition
+  op _<<_ : EqCondition Substitution -> EqCondition .
+  eq (nil).EqCondition << Subst 
+   = (nil).EqCondition .
+  eq ((T1 = T2) /\ EqC) << Subst
+   = ((T1 << Subst) = (T2 << Subst)) /\ (EqC << Subst) .
+  eq ((T1 : T2) /\ EqC) << Subst
+   = ((T1 << Subst) : (T2 << Subst)) /\ (EqC << Subst) .
+  eq ((T1 := T2) /\ EqC) << Subst
+   = ((T1 << Subst) := (T2 << Subst)) /\ (EqC << Subst) .
+
+
+  --- checks if a term contains a problematic Boolean operator;
+  --- currently the only problematic Boolean operator is xor
+  op problematic : TermList -> Bool .
+  eq problematic(empty)
+   = false .
+  eq problematic((C,TL'))
+   = problematic(TL') .
+  eq problematic((V,TL'))
+   = problematic(TL') .
+  eq problematic((Q[TL],TL'))
+   = if Q == '_xor_
+     then true
+     else problematic((TL,TL'))
+     fi .
+endfm
+
+--- module utilities
+fmod MODULE-UTILS is
+  pr META-LEVEL .
+
+  vars AtS AtS'         : AttrSet .
+  vars EqS EqS'         : EquationSet .
+  vars EqC EqC'         : EqCondition .
+  var  M                : Module .
+  vars L L'             : Qid .
+  vars Q Q'             : Qid .
+  vars RlS RlS'         : RuleSet .
+  vars T T'             : Term .
+  vars TL TL'           : TermList .
+
+  --- turns a set of equations into a set of conditional equations
+  op  make-conditional : EquationSet -> EquationSet [memo] .
+  op $make-conditional : EquationSet EquationSet -> EquationSet .
+
+  eq make-conditional(EqS)
+   = $make-conditional(EqS,none) .
+  eq $make-conditional(none,EqS')
+   = EqS' .
+  eq $make-conditional((eq T = T' [AtS].) EqS, EqS')
+   = $make-conditional(EqS, (ceq T = T' if nil [AtS].) EqS') .
+  eq $make-conditional((ceq T = T' if EqC [AtS].) EqS, EqS')
+   = $make-conditional(EqS, (ceq T = T' if EqC [AtS].) EqS') .
+
+  --- turns a set of rules into a set of conditional rules
+  op  make-conditional : RuleSet -> RuleSet [memo] .
+  op $make-conditional : RuleSet RuleSet -> RuleSet .
+
+  eq make-conditional(RlS)
+   = $make-conditional(RlS,none) .
+  eq $make-conditional(none,RlS')
+   = RlS' .
+  eq $make-conditional((rl T => T' [AtS].) RlS, RlS')
+   = $make-conditional(RlS, (crl T => T' if nil [AtS].) RlS') .
+  eq $make-conditional((crl T => T' if EqC [AtS].) RlS, RlS')
+   = $make-conditional(RlS, (crl T => T' if EqC [AtS].) RlS') .
+
+  --- turns the equations and rules in a module into a set of conditional
+  --- equations and rules
+  op make-conditional : Module -> Module .
+  eq make-conditional(
+      fmod H:Header is IL:ImportList sorts SS:SortSet .
+        SDS:SubsortDeclSet ODS:OpDeclSet MAX:MembAxSet ES:EquationSet 
+      endfm)
+   = (fmod H:Header is IL:ImportList sorts SS:SortSet .
+         SDS:SubsortDeclSet ODS:OpDeclSet MAX:MembAxSet make-conditional(ES:EquationSet) 
+      endfm) .
+  eq make-conditional(
+      mod H:Header is IL:ImportList sorts SS:SortSet .
+        SDS:SubsortDeclSet ODS:OpDeclSet MAX:MembAxSet ES:EquationSet RS:RuleSet
+      endm)
+   = (mod H:Header is IL:ImportList sorts SS:SortSet .
+        SDS:SubsortDeclSet ODS:OpDeclSet MAX:MembAxSet 
+	make-conditional(ES:EquationSet) make-conditional(RS:RuleSet)
+      endm) .
+  eq make-conditional(M:Module)
+   = M:Module [owise] .
+
+  --- filters the set of equations with the root of the given term
+  op  filter-eqs : EquationSet Term -> EquationSet .
+  op $filter-eqs : EquationSet Term EquationSet -> EquationSet .
+  eq filter-eqs(EqS,T)
+   = $filter-eqs(EqS,T,none) .
+  eq $filter-eqs(none,T,EqS')
+   = EqS' .
+  eq $filter-eqs((eq Q[TL] = T [AtS] .) EqS, Q[TL'], EqS')
+   = $filter-eqs(EqS, Q[TL'], (eq Q[TL] = T [AtS] .) EqS') .
+  eq $filter-eqs((ceq Q[TL] = T if EqC [AtS] .) EqS, Q[TL'], EqS')
+   = $filter-eqs(EqS, Q[TL'], (ceq Q[TL] = T if EqC [AtS] .) EqS') .
+  eq $filter-eqs(EqS,T,EqS')
+   = EqS' [owise] .
+
+  --- upModule does not generate the by-default no-label for those
+  --- unalabled equations/rules, so using matching against attributes
+  --- for equations/rules is a pain in the neck. I need to add a
+  --- get-label function that given an attribute set returns its label
+  --- value if it has any, the by-default no-label otherwise
+  op get-label : AttrSet -> Qid .
+  eq get-label(label(L) AtS) 
+   = L .
+  eq get-label(AtS) 
+   = 'no-label [owise] . 
+
+  op check-joinable : Module Term Term -> Bool .
+  eq check-joinable(M,T,T')
+   = metaReduce(M,T) == metaReduce(M,T') .
+endfm
+
+view UnificationTriple from TRIV to META-LEVEL is
+  sort Elt to UnificationTriple .
+endv
+
+--- unification utilities
+fmod UNIF-UTILS is
+  pr TERM-UTILS .
+  pr (SET * (op _,_ to __)){UnificationTriple} 
+          * (sort Set{UnificationTriple} to UnificationTripleSet,
+             sort NeSet{UnificationTriple} to NeUnificationTripleSet) .
+
+  var  M        : Module .
+  vars N N' N'' : Nat .
+  vars SS SS'   : SubstitutionSet .
+  vars T T'     : Term .
+  vars UT       : UnificationTriple .
+  vars UTS UTS' : UnificationTripleSet .
+
+  op  compute-unifiers : Module Term Term Nat -> UnificationTripleSet .
+  op $compute-unifiers : Module Term Term Nat Nat UnificationTripleSet
+                          -> UnificationTripleSet .
+
+  --- computes the unifiers of the given terms relative to the given
+  --- module;
+  --- it assumes that if the terms have variables in common, then they
+  --- are semantically different thus uses metaDisjointUnify instead
+  --- of metaUnify. The variables created by the unification algorithm
+  --- will have identifiers strictly greater than the given number
+  eq compute-unifiers(M,T,T',N)
+   = $compute-unifiers(M,T,T',N,0,empty) .
+ ceq $compute-unifiers(M,T,T',N,N',UTS)
+   = UTS
+  if noUnifier := metaDisjointUnify(M, T =? T', N, N') .
+ ceq $compute-unifiers(M,T,T',N,N',UTS)
+   = $compute-unifiers(M,T,T',N,s(N'),UT UTS)
+  if UT := metaDisjointUnify(M, T =? T', N, N') .
+endfm
+
+------------------
+--- data types ---
+------------------
+
+--- proof obligation status
+fmod PROOF-OBL-STATUS is
+  pr META-MODULE .
+
+  sort ProofOblStatus .
+
+  op pending : -> ProofOblStatus .
+  op po-status-label : ProofOblStatus -> QidList .
+  eq po-status-label(pending)
+   = '\r 'pending '\o .
+endfm
+
+--- Data types and functions for dealing with proof obligations, both
+--- unconditional and conditional ones.
+fmod PROOF-OBL is
+  pr PROOF-OBL-STATUS .
+
+  ---- status of a proof obligation
+  sort ProofObl .
+  op cpo : Nat Qid Qid Term Term EqCondition ProofOblStatus -> ProofObl .
+  eq cpo(N:Nat,L:Qid,L':Qid,T:Term,T':Term, T1:Term = T1:Term /\ EqC:EqCondition,POSt:ProofOblStatus)
+   = cpo(N:Nat,L:Qid,L':Qid,T:Term,T':Term, EqC:EqCondition,POSt:ProofOblStatus) .
+ endfm
+
+view ProofObl from TRIV to PROOF-OBL is
+  sort Elt to ProofObl .
+endv
+
+--- proof obligation set
+fmod PROOF-OBL-SET is
+  pr PROOF-OBL .
+  pr (SET * (op empty to none, op _,_ to __)){ProofObl} 
+          * (sort Set{ProofObl} to ProofOblSet,
+             sort NeSet{ProofObl} to NeProofOblSet) .
+endfm
+
+--- creation of proof obligations and related utilities
+fmod PROOF-OBL-UTILS is
+  pr PROOF-OBL-SET .
+  pr UNIF-UTILS .
+  
+  vars EqC EqC'   : EqCondition .
+  vars N N'       : Nat .
+  vars POS POS'   : ProofOblSet .
+  var  POS''      : ProofOblSet .
+  vars POSt POSt' : ProofOblStatus .
+  vars L L'       : Qid .
+  vars Q Q'       : Qid .
+  vars S S'       : Substitution .
+  vars T T' T1    : Term .
+  vars T2 T3 T4   : Term .
+  vars TL TL'     : TermList .
+  var  UTS        : UnificationTripleSet .
+
+---(
+  --- creation of proof obligations from terms and substituions
+  --- create-pos(T,T',EqC,EqC',L,L',UTS,N) creates as many proof obligations as
+  --- unifiers in UTS such that if {S,S',N'} \in UTS then the proof obligation
+  *** (T << S) = (T' << S') if (EqC << S) /\ (EqC' << S') with labels L and L',
+  --- and with consecutive number identifiers starting from N
+)
+  op  create-pos : Term Term EqCondition EqCondition Qid Qid UnificationTripleSet Nat -> ProofOblSet .
+  op $create-pos : Term Term EqCondition EqCondition Qid Qid UnificationTripleSet Nat ProofOblSet -> ProofOblSet .
+  eq create-pos(T,T',EqC,EqC',L,L',UTS,N)
+   = $create-pos(T,T',EqC,EqC',L,L',UTS,N,none) .
+  eq $create-pos(T,T',EqC,EqC',L,L',empty,N,POS)
+   = POS .
+  eq $create-pos(T,T',EqC,EqC',L,L',({S,S',N'} UTS),N,POS)
+   = $create-pos(T,T',EqC,EqC',L,L',UTS,s(N),
+       cpo(N,L,L',T << S, T' << S', (EqC << S) /\ (EqC' << S'),pending) POS) .
+
+  --- similar to the previous version of this function but the first argument
+  --- in the first term T = Q[T',TL] is substituted by the second argument under
+  --- the second substituion of each unifier.
+  --- this command is specially useful for creating proof obligations
+  --- for rewrite-descent
+  op  create-pos : Term Term Term EqCondition EqCondition Qid Qid UnificationTripleSet Nat -> ProofOblSet .
+  op $create-pos : Term Term Term EqCondition EqCondition Qid Qid UnificationTripleSet Nat ProofOblSet -> ProofOblSet .
+  eq create-pos(T,T1,T',EqC,EqC',L,L',UTS,N)
+   = $create-pos(T,T1,T',EqC,EqC',L,L',UTS,N,none) .
+  eq $create-pos(T,T1,T',EqC,EqC',L,L',empty,N,POS)
+   = POS .
+ ceq $create-pos(Q[T,TL],T1,T',EqC,EqC',L,L',({S,S',N'} UTS),N,POS)
+   = $create-pos(Q[T,TL],T1,T',EqC,EqC',L,L',UTS,s(N),
+       cpo(N,L,L', Q[T3,TL'], T' << S', (EqC << S) /\ (EqC' << S'),pending) POS)
+  if Q[T2,TL'] := (Q[T,TL] << S)
+  /\ T3 := (T1 << S') .
+
+  --- filters out all proof obligations that are not pending
+  op  filter-not-pending : ProofOblSet -> ProofOblSet .
+  op $filter-not-pending : ProofOblSet ProofOblSet -> ProofOblSet .
+  eq filter-not-pending(POS)
+   = $filter-not-pending(POS,none) .
+  eq $filter-not-pending(none,POS')
+   = POS' .
+  eq $filter-not-pending(cpo(N,L,L',T,T',EqC,POSt) POS,POS')
+   = if POSt == pending
+     then $filter-not-pending(POS, cpo(N,L,L',T,T',EqC,POSt) POS')
+     else $filter-not-pending(POS,POS')
+     fi .
+
+  --- updates the initial set of proof obligations with the 
+  --- status of the second one;
+  --- it is assumed that the sets of proof obligations have 
+  --- the same number of elements that share the same collection
+  --- of proof obligation identifiers
+  op  update-pos : ProofOblSet ProofOblSet -> ProofOblSet .
+  op $update-pos : ProofOblSet ProofOblSet ProofOblSet -> ProofOblSet .
+  eq update-pos(POS,POS')
+   = $update-pos(POS,POS',none) .
+  eq $update-pos(none,none,POS'')
+   = POS'' .
+  eq $update-pos(cpo(N,L,L',T1,T2,EqC,POSt) POS,
+                 cpo(N,L,L',T,T',EqC',POSt') POS',
+                 POS'')
+   = $update-pos(POS,POS',cpo(N,L,L',T1,T2,EqC,POSt') POS'') .
+endfm
+
+view ProofOblSet from TRIV to PROOF-OBL-SET is
+  sort Elt to ProofOblSet .
+endv
+
+----------------------------------------
+---- implementation of descent rules ---
+----------------------------------------
+
+--- equational descent
+fmod EQ-DESCENT is
+  pr MODULE-UTILS .
+  pr PROOF-OBL-UTILS .
+
+  var  AtS        : AttrSet .
+  var  EqC        : EqCondition .
+  var  EqS        : EquationSet .
+  var  M          : Module .
+  var  N          : Nat .
+  var  PO         : ProofObl .
+  vars POS POS'   : ProofOblSet .
+  var  L          : Qid .
+  vars T T'       : Term .
+  vars T1 T2      : Term .
+  var  UTS        : UnificationTripleSet .
+
+  op eq-descent : Module Term Term Nat -> ProofOblSet .
+  op eq-descent-aux : Module Term Term Nat EquationSet ProofOblSet -> ProofOblSet .
+  eq eq-descent(M,T,T',N)
+   = eq-descent-aux(M,T,T',N,make-conditional(filter-eqs(getEqs(M),T)),none) .
+  eq eq-descent-aux(M,T,T',N,none,POS)
+   = POS .
+ ceq eq-descent-aux(M,T,T',N,(ceq T1 = T2 if EqC [AtS].) EqS,POS)
+   = eq-descent-aux(M,T,T',N + | UTS |,EqS,POS POS')
+  if L    := get-label(AtS)
+  /\ UTS  := compute-unifiers(M,T,T1,0)
+  /\ POS' := create-pos(T','true.Bool,nil,EqC /\ (T2 = 'true.Bool),L,'no-label,UTS,N) .
+endfm
+
+--- rewrite descent
+fmod REW-DESCENT is
+  pr MODULE-UTILS .
+  pr PROOF-OBL-UTILS .
+
+  vars AtS AtS'   : AttrSet .
+  vars EqC EqC'   : EqCondition .
+  var  Eq         : Equation .
+  vars EqS EqS'   : EquationSet .
+  vars M M'       : Module .
+  vars N N'       : Nat .
+  var  PO         : ProofObl .
+  vars POS POS'   : ProofOblSet .
+  vars L L'       : Qid .
+  vars Q Q'       : Qid .
+  vars RlS RlS'   : RuleSet .
+  vars S S'       : Substitution .
+  vars T T'       : Term .
+  vars T1 T2      : Term .
+  vars T3 T4      : Term .
+  vars TL TL'     : TermList .
+  vars UTS UTS'   : UnificationTripleSet .
+
+  op rew-descent  : Module Module Term Nat -> ProofOblSet .
+  op rew-descent+ : Module Module Term EqCondition Nat -> ProofOblSet .
+  op rew-descent-aux : Module Term EqCondition Nat EquationSet RuleSet ProofOblSet -> ProofOblSet .
+  eq rew-descent(M,M',T,N)
+   = rew-descent+(M,M',T,nil,N) .
+  eq rew-descent+(M,M',T,EqC,N)
+   = rew-descent-aux(
+       M,T,EqC,N,
+       make-conditional(filter-eqs(getEqs(M),T)),
+       make-conditional(getRls(M')),
+       none) .
+  eq rew-descent-aux(M,T,EqC',N,none,RlS,POS)
+   = POS .
+ ceq rew-descent-aux(M,T,EqC',N,(ceq T1 = T2 if EqC [AtS].) EqS,RlS,POS)
+   = rew-descent-aux(M,T,EqC',N + | POS' |,EqS,RlS,POS POS')
+  if UTS  := compute-unifiers(M,T,T1,0)
+  /\ POS' := narrow-with-rules(M,T,EqC',N,(ceq T1 = T2 if EqC [AtS].),RlS,UTS,none) .
+
+  --- simulates one step narrowing the the rules when unified with the first argument of each
+  --- left hand sand of the equations definining the predicate of interest
+  op narrow-with-rules : Module Term EqCondition Nat Equation RuleSet UnificationTripleSet ProofOblSet -> ProofOblSet .
+  op narrow-with-rules-aux : Module Nat Equation RuleSet Nat ProofOblSet -> ProofOblSet .
+  eq narrow-with-rules(M,T,EqC',N,Eq,RlS,empty,POS)
+   = POS .
+ ceq narrow-with-rules(M,T,EqC',N,Eq,RlS,({S,S',N'} UTS),POS)
+   = narrow-with-rules(M,T,EqC',N + | POS' |,Eq,RlS,UTS,POS POS')
+  if (ceq T1 = T2 if EqC [AtS].) := Eq
+  /\  POS' := narrow-with-rules-aux(M,N,
+               (ceq (T << S) = (T2 << S') if (EqC' << S) /\ (EqC << S') [AtS].),RlS,N',none) .
+  eq narrow-with-rules-aux(M,N,Eq,none,N',POS)
+   = POS .
+ ceq narrow-with-rules-aux(M,N,
+       (ceq Q[T,TL] = T1 if EqC [AtS].),
+       (crl T2 => T3 if EqC' [AtS'].) RlS,
+       N',POS)
+   = narrow-with-rules-aux(
+       M,N + | POS' |,
+       (ceq Q[T,TL] = T1 if EqC [AtS].),RlS,N',POS POS')
+  if L    := get-label(AtS)
+  /\ L'   := get-label(AtS')
+  /\ UTS  := compute-unifiers(M,T,T2,N')
+  /\ POS' := create-pos(Q[T,TL],T3,'true.Bool,EqC /\ T1 = 'true.Bool, EqC',L,L',UTS,N) .
+endfm
+
+----------------------------------------------------
+--- heuristics for discharging proof obligations ---
+----------------------------------------------------
+
+--- proof obligations are simplified so that if a conjunct
+--- in the condition is trivially true then it is omitted,
+--- if one of the terms in conjunct is a Boolean constant,
+--- then this representation is used, etc.
+fmod CANONIZE-PROOF-OBL is
+  pr PROOF-OBL-SET .
+---a  pr META-LEVEL .
+  pr TERM-UTILS .
+
+  vars C C'          : Constant .
+  vars EqC EqC'      : EqCondition .
+  var  M             : Module .
+  var  N             : Nat .
+  var  NeTL          : NeTermList .
+  var  PO            : ProofObl .
+  vars POS POS'      : ProofOblSet .
+  vars POSt          : ProofOblStatus .
+  vars Q Q'          : Qid .
+  vars T T'          : Term .
+  vars T1 T2         : Term .
+  vars TL TL'        : TermList .
+
+  --- simplification of proof obligations in a set
+  op  canonize-pos : Module ProofOblSet -> ProofOblSet .
+  op $canonize-pos : Module ProofOblSet ProofOblSet -> ProofOblSet .
+  eq canonize-pos(M,POS)
+   = $canonize-pos(M,POS,none) .
+  eq $canonize-pos(M,none,POS')
+   = POS' .
+  eq $canonize-pos(M,PO POS,POS')
+   = $canonize-pos(M,POS, canonize-po(M,PO) POS') .
+
+  op canonize-term : Module Term -> Term .
+  eq canonize-term(M,T)
+   = if problematic(getTerm(metaReduce(M,T))) == true
+     then T
+     else getTerm(metaReduce(M,T))
+     fi .
+
+  --- simplification of a proof obligation
+  op canonize-po : Module ProofObl -> ProofObl .
+  eq canonize-po(M,cpo(N,Q,Q',T,T',EqC,POSt))
+   = cpo(N,Q,Q',canonize-term(M,T),canonize-term(M,T'),
+         canonize-eqc(M,EqC,nil),POSt) .
+---(
+ --- TODO remove this code that is under observation
+ ceq canonize-po(M,cpo(N,Q,Q',T,T',EqC,POSt))
+   = if T1 == T2
+     then cpo(N,Q,Q','true.Bool,'true.Bool,canonize-eqc(M,EqC,nil),POSt)
+     else
+       if T1 == 'true.Bool or T1 == 'false.Bool
+       then
+         if T2 == 'true.Bool or T1 == 'false.Bool
+         then cpo(N,Q,Q',T1,T2,canonize-eqc(M,EqC,nil),POSt)
+         else cpo(N,Q,Q',T1,T',canonize-eqc(M,EqC,nil),POSt)
+         fi
+       else
+         if T2 == 'true.Bool or T1 == 'false.Bool
+         then cpo(N,Q,Q',T,T2,canonize-eqc(M,EqC,nil),POSt)
+         else cpo(N,Q,Q',T,T',canonize-eqc(M,EqC,nil),POSt)
+         fi
+       fi
+     fi
+  if T1 := getTerm(metaReduce(M,T))
+  /\ T2 := getTerm(metaReduce(M,T')) .
+)
+
+  --- simplification of a conjunction of equalities
+  op canonize-eqc : Module EqCondition EqCondition -> EqCondition .
+  eq canonize-eqc(M,nil,EqC')
+   = split-bool(EqC',nil) .
+  eq canonize-eqc(M,(T = T') /\ EqC,EqC')
+   = canonize-eqc(M,EqC,EqC' /\ canonize-term(M,T) = canonize-term(M,T')) .
+  eq canonize-eqc(M,(T := T') /\ EqC,EqC')
+   = canonize-eqc(M,EqC,EqC' /\ canonize-term(M,T) := canonize-term(M,T')) .
+
+---(
+  --- TOOD remove this code that is under observation
+ ceq canonize-eqc(M,(T = T') /\ EqC,EqC')
+   = if T1 == T2
+     then canonize-eqc(M,EqC,EqC')
+     else
+       if T1 == 'true.Bool or T1 == 'false.Bool
+       then
+         if T2 == 'true.Bool or T2 == 'false.Bool
+         then canonize-eqc(M,EqC,EqC' /\ T1 = T2)
+         else canonize-eqc(M,EqC,EqC' /\ T1 = T')
+         fi
+       else
+         if T2 == 'true.Bool or T2 == 'false.Bool
+         then canonize-eqc(M,EqC,EqC' /\ T = T2)
+         else canonize-eqc(M,EqC,EqC' /\ T = T')
+         fi
+       fi
+     fi
+  if T1 := getTerm(metaReduce(M,T))
+  /\ T2 := getTerm(metaReduce(M,T')) .
+ ceq canonize-eqc(M,(T := T') /\ EqC,EqC')
+   = if T1 == T2
+     then canonize-eqc(M,EqC,EqC')
+     else
+       if T1 == 'true.Bool or T1 == 'false.Bool
+       then
+         if T2 == 'true.Bool or T2 == 'false.Bool
+         then canonize-eqc(M,EqC,EqC' /\ T1 := T2)
+         else canonize-eqc(M,EqC,EqC' /\ T1 := T')
+         fi
+       else
+         if T2 == 'true.Bool or T2 == 'false.Bool
+         then canonize-eqc(M,EqC,EqC' /\ T := T2)
+         else canonize-eqc(M,EqC,EqC' /\ T := T')
+         fi
+       fi
+     fi
+  if T1 := getTerm(metaReduce(M,T))
+  /\ T2 := getTerm(metaReduce(M,T')) .
+)
+
+  --- Boolean splitting for equalities in the condition that have
+  --- one of the terms to be a Boolean constant and the other term
+  --- a Boolean combination that can be splitted or an equality
+  --- enrichment that can be transformed into an equality
+  op split-bool : EqCondition EqCondition -> EqCondition .
+  eq split-bool(nil,EqC')
+   = EqC' .
+  eq split-bool(T := T' /\ EqC,EqC')
+   = split-bool(EqC,EqC' /\ T := T') .
+  eq split-bool(C = C' /\ EqC,EqC')
+   = split-bool(EqC,EqC' /\ C = C') .
+ ceq split-bool(C = T /\ EqC,EqC')
+   = split-bool(T = C /\ EqC,EqC')
+  if (T :: Constant) = false .
+  eq split-bool('_and_[T,T'] = 'true.Bool /\ EqC,EqC')
+   = split-bool(T = 'true.Bool /\ T' = 'true.Bool /\ EqC,EqC') .
+  eq split-bool('_and_[T,T',NeTL] = 'true.Bool /\ EqC,EqC')
+   = split-bool(T = 'true.Bool /\ '_and_[T',NeTL]  = 'true.Bool /\ EqC,EqC') .
+  eq split-bool('_or_[T,T'] = 'false.Bool /\ EqC,EqC')
+   = split-bool(T = 'false.Bool /\ T' = 'false.Bool /\ EqC,EqC') .
+  eq split-bool('_or_[T,T',NeTL] = 'false.Bool /\ EqC,EqC')
+   = split-bool(T = 'false.Bool /\ '_or_[T',NeTL]  = 'false.Bool /\ EqC,EqC') .
+  eq split-bool('_implies_[T,T'] = 'false.Bool /\ EqC,EqC')
+   = split-bool(T = 'true.Bool /\ T' = 'false.Bool /\ EqC,EqC') .
+  eq split-bool('_~_[T,T'] = 'true.Bool /\ EqC,EqC')
+   = split-bool(T = T' /\ EqC,EqC') .
+  eq split-bool(T = T' /\ EqC,EqC')
+   = split-bool(EqC,EqC' /\ T = T') [owise] .
+endfm
+
+--- trivial joinable conclusion or unsatisfiable condition
+fmod TRIVIAL-PROOF is
+  pr PROOF-OBL-SET .
+  pr META-LEVEL .
+  inc PROOF-OBL-STATUS .
+
+  var  AtS          : AttrSet .
+  vars EqC EqC'     : EqCondition .
+  var  M            : Module .
+  var  N            : Nat .
+  var  POSt         : ProofOblStatus .
+  vars Q Q'         : Qid .
+  vars T T' T1 T2   : Term .
+
+  --- status of proof obligations discharged by this heuristic
+  ops triv-join triv-unfeas : -> ProofOblStatus .
+  eq po-status-label(triv-join)
+   = '\g 'trivially 'joinable '\o .
+  eq po-status-label(triv-unfeas)
+   = '\g 'trivially 'unfeasible '\o .
+
+  --- it assumes that the equation is conditional and that it
+  --- has been simplified in the sense of PROOF-OBL-SIMPL
+  ops triv-join triv-unfeas : Module Equation -> Bool .
+  ops triv-join triv-unfeas : Module ProofObl -> Bool .
+  op triv-unsat : Module EqCondition -> Bool .
+  eq triv-join(M,cpo(N,Q,Q',T,T',EqC,POSt))
+   = triv-join(M,(ceq T = T' if EqC [none].)) .
+  eq triv-unfeas(M,cpo(N,Q,Q',T,T',EqC,POSt))
+   = triv-unfeas(M,(ceq T = T' if EqC [none].)) .
+  eq triv-join(M,ceq T = T' if EqC [AtS].)
+   = T == T' .
+  eq triv-unfeas(M,(ceq T = T' if EqC [AtS].))
+   = triv-unsat(M,EqC) .
+  eq triv-unsat(M,nil)
+    = false .
+  eq triv-unsat(M, (T = T') /\ EqC)
+   = if ((T == 'true.Bool) and (T' == 'false.Bool)) or-else
+        ((T == 'false.Bool) and (T' == 'true.Bool))
+     then true
+     else triv-unsat(M,EqC)
+     fi .
+endfm
+
+----------------------------------------------------
+--- Call to the functionality offered by the CRC ---
+----------------------------------------------------
+fmod CTX-JOINABLE-UNFEASIBLE is
+  pr CRC-CONTEXT-JOINABILITY-UNFEASIBILITY .
+  inc PROOF-OBL .
+
+  var  CPSt      : CPStatus .
+  var  EqC       : EqCondition .
+  var  M         : Module .
+  var  N         : Nat .
+  var  PO        : ProofObl .
+  var  POSt      : ProofOblStatus . 
+  vars Q Q'      : Qid .
+  var  S         : String .
+  vars T T'      : Term .
+
+  --- status of proof obligations discharged by this heuristic
+  op ctx-join-unfeas : -> ProofOblStatus .
+  eq po-status-label(ctx-join-unfeas)
+   = '\g 'context 'joinable/unfeasible '\o .
+
+  --- main command function that checks if a given proof obligation
+  --- is context joinable or has an unsatifiable condition
+  op ctx-join-unfeas : Module ProofObl -> Bool .
+  eq ctx-join-unfeas(M,PO)
+   = cp-solved?(crcContextJoinableAndUnfeasibleCPs(M,po-to-cp(PO))) .
+
+  --- conversion of proof obligations into critical pairs
+  op po-to-cp : ProofObl -> CritPair .
+  eq po-to-cp(cpo(N,Q,Q',T,T',EqC,POSt))
+   = ccp("InvA",Q,Q',T,T',EqC,pending) .
+
+  --- checks if a critical pair has been solved or not
+  --- in the sense that it is not pending for the CRC
+  --- anymore
+  op cp-solved? : CritPair -> Bool .
+  eq cp-solved?(cp(S,Q,Q',T,T',CPSt))
+   = CPSt =/= pending .
+  eq cp-solved?(ccp(S,Q,Q',T,T',EqC,CPSt))
+   = CPSt =/= pending .
+endfm
+
+-------------------
+--- SMT Solving ---
+-------------------
+--- constants used by the SMT solver interface
+fmod SMT-CONSTANTS is
+  pr STRING .
+  --- variable prefixes
+  ops ivar-prefix : -> String .
+  eq ivar-prefix 
+   = "i" .
+
+  --- smt types
+  ops bool-type int-type : -> String .
+  op smt-logic : -> String .
+  eq bool-type 
+   = "Bool" .
+  eq int-type 
+   = "Int" .
+
+  --- smt logic
+  op smt-logic : -> String .
+  eq smt-logic 
+   = "QF_LIA" .
+endfm
+
+view Variable from TRIV to META-TERM is
+  sort Elt to Variable .
+endv
+
+--- checks if a given Boolean formula is supported
+--- by the SMT checking interface
+fmod SMT-FORMULA-CHECKER is
+  pr BOOL-OPS .
+  pr INT .
+  pr META-LEVEL .
+  pr MAP{Variable,Nat} .
+
+  sort VarNameInfr .
+
+  op unsupported : -> VarNameInfr .
+  op vni : Nat Map{Variable,Nat} -> VarNameInfr .
+
+  vars B B'    : Bool .
+  vars I I'    : Int .
+  vars Mp Mp'  : Map{Variable,Nat} .
+  vars N N'    : Nat .
+  vars VNI     : VarNameInfr .
+
+  --- gets the renaming map from a valid variable
+  --- naming infrastructure
+  op get-map : VarNameInfr ~> Map{Variable,Nat} .
+  eq get-map(vni(N,Mp))
+   = Mp .
+
+  --- checks if a given Boolean expression is a quantifier-free
+  --- integer formula, in which only variables of sort Int
+  --- are allowed
+  op  is-qfnia : Bool -> VarNameInfr .
+  op $is-qfnia : Bool VarNameInfr -> VarNameInfr .
+
+  eq is-qfnia(B)
+   = $is-qfnia(B,vni(0,empty)) .
+
+  ---- Boolean function symbols
+  eq $is-qfnia(true, vni(N,Mp))
+   = vni(N,Mp) .
+  eq $is-qfnia(false, vni(N,Mp))
+   = vni(N,Mp) .
+  eq $is-qfnia(not B,vni(N,Mp))
+   = $is-qfnia(B,vni(N,Mp)) .
+  eq $is-qfnia(B and B',vni(N,Mp))
+   = if $is-qfnia(B,vni(N,Mp)) =/= unsupported
+     then $is-qfnia(B',$is-qfnia(B,vni(N,Mp)))
+     else unsupported
+     fi .
+  eq $is-qfnia(B or B',vni(N,Mp))
+   = if $is-qfnia(B,vni(N,Mp)) =/= unsupported
+     then $is-qfnia(B',$is-qfnia(B,vni(N,Mp)))
+     else unsupported
+     fi .
+  eq $is-qfnia(B xor B',vni(N,Mp))
+   = if $is-qfnia(B,vni(N,Mp)) =/= unsupported
+     then $is-qfnia(B',$is-qfnia(B,vni(N,Mp)))
+     else unsupported
+     fi .
+  eq $is-qfnia(B implies B',vni(N,Mp))
+   = if $is-qfnia(B,vni(N,Mp)) =/= unsupported
+     then $is-qfnia(B',$is-qfnia(B,vni(N,Mp)))
+     else unsupported
+     fi .
+
+  ---- integer relational operators
+  eq $is-qfnia(I <= I',vni(N,Mp))
+   = if is-aritat(I,vni(N,Mp)) =/= unsupported
+     then is-aritat(I',is-aritat(I,vni(N,Mp)))
+     else unsupported
+     fi .
+  eq $is-qfnia(I < I',vni(N,Mp))
+   = if is-aritat(I,vni(N,Mp)) =/= unsupported
+     then is-aritat(I',is-aritat(I,vni(N,Mp)))
+     else unsupported
+     fi .
+  eq $is-qfnia(I >= I',vni(N,Mp))
+   = if is-aritat(I,vni(N,Mp)) =/= unsupported
+     then is-aritat(I',is-aritat(I,vni(N,Mp)))
+     else unsupported
+     fi .
+  eq $is-qfnia(I > I',vni(N,Mp))
+   = if is-aritat(I,vni(N,Mp)) =/= unsupported
+     then is-aritat(I',is-aritat(I,vni(N,Mp)))
+     else unsupported
+     fi .
+
+  ---- anything else is not supported
+  eq $is-qfnia(B,VNI)
+   = unsupported                       [owise] .
+
+  --- checks if the given integer expression is a
+  --- valid arithmetical in terms of supported
+  --- operators and in which variables are allowed
+  op is-aritat : Int VarNameInfr -> VarNameInfr .
+
+  eq is-aritat(0,vni(N,Mp))
+   = vni(N,Mp) .
+  eq is-aritat(s(I),vni(N,Mp))
+   = is-aritat(I,vni(N,Mp)) .
+  eq is-aritat(-(I),vni(N,Mp))
+   = is-aritat(I,vni(N,Mp)) .
+  eq is-aritat(I + I',vni(N,Mp))
+   = if is-aritat(I,vni(N,Mp)) =/= unsupported
+     then is-aritat(I',is-aritat(I,vni(N,Mp)))
+     else unsupported
+     fi .
+---- TODO fix the parsing for binary minus
+----  eq is-aritat((I - (I')))
+----   = is-aritat(I) and-then is-aritat(I') .
+  eq is-aritat(I * I',vni(N,Mp))
+   = if is-aritat(I,vni(N,Mp)) =/= unsupported
+     then is-aritat(I',is-aritat(I,vni(N,Mp)))
+     else unsupported
+     fi .
+  --- arithmetic variables and any other arithmetic expression
+  eq is-aritat(I,vni(N,Mp))
+   = if (upTerm(I) :: Variable) 
+     then vni(s(N),insert(upTerm(I),N,Mp))
+     else unsupported
+     fi                            [owise] .
+endfm
+
+--- formula translation to SMTLib standard for supported
+--- formulas in the language of Maude
+fmod SMT-FORMULA-TRANSLATION is
+  pr SMT-CONSTANTS .
+  pr SMT-FORMULA-CHECKER .
+  pr CONVERSION .
+
+  vars B B'       : Bool .
+  vars I I'       : Int .
+  vars Mp Mp'     : Map{Variable,Nat} .
+  vars N N'       : Nat .
+  vars Str Str'   : String .
+  vars Str1 Str2  : String .
+  vars V          : Variable .
+  vars VNI        : VarNameInfr .
+
+  op  translate : Bool -> String .
+  --- it assumes that the Boolean expression is a valid
+  --- formula supported by the SMT solver (see module SMT-FORMULA-CHECKER)
+  --- and the given map contains in its domain all integer
+  --- variables in the Boolean expression
+  op $translate : Bool Map{Variable,Nat} -> String .
+  op $translate : Int Map{Variable,Nat} -> String .
+
+ ceq translate(B)
+   = add-smt-metadata(Str1 + Str2)
+  if is-qfnia(B) =/= unsupported 
+  /\ Mp := get-map(is-qfnia(B))
+  /\ Str1 := declare-vars(Mp)
+  /\ Str2 := "(assert " + gen-constraints($translate(B,Mp),Mp) + ")" .
+
+ ceq translate(B)
+   = ""
+  if is-qfnia(B) = unsupported .
+
+  op  declare-vars : Map{Variable,Nat} -> String .
+  op $declare-vars : Map{Variable,Nat} String -> String .
+  eq declare-vars(Mp)
+   = $declare-vars(Mp,"") .
+  eq $declare-vars(empty,Str)
+   = Str .
+  eq $declare-vars(((V |-> N),Mp),Str)
+   = $declare-vars(Mp, Str + 
+       "(declare-fun " + ivar-prefix + string(N,10) + " () " + int-type + ") ") .
+
+  --- adds smt metadata, such as a header setting the logic
+  op add-smt-metadata : String -> String .
+  eq add-smt-metadata(Str)
+   = "(set-logic " + smt-logic + ") " + Str .
+
+  ---- Boolean function symbols
+  eq $translate(true,Mp)
+   = "true" .
+  eq $translate(false,Mp)
+   = "false" .
+  eq $translate(not B,Mp)
+   = ("(not " + $translate(B,Mp) + ")") .
+  eq $translate(B and B',Mp)
+   = ("(and " + $translate(B,Mp) + " " + $translate(B',Mp) + ")") .
+  eq $translate(B or B',Mp)
+   = ("(or " + $translate(B,Mp) + " " + $translate(B',Mp) + ")") .
+  eq $translate(B xor B',Mp)
+   = ("(xor " + $translate(B,Mp) + " " + $translate(B',Mp) + ")") .
+  eq $translate(B implies B',Mp)
+   = ("(=> " + $translate(B,Mp) + " " + $translate(B',Mp) + ")") .
+
+  ---- integer relational operators
+  eq $translate(I <= I',Mp)
+   = ("(<= " + $translate(I,Mp) + " " + $translate(I',Mp) + ")") .
+  eq $translate(I < I',Mp)
+   = ("(< " + $translate(I,Mp) + " " + $translate(I',Mp) + ")") .
+  eq $translate(I >= I',Mp)
+   = ("(>= " + $translate(I,Mp) + " " + $translate(I',Mp) + ")") .
+  eq $translate(I > I',Mp)
+   = ("(> " + $translate(I,Mp) + " " + $translate(I',Mp) + ")") .
+
+  ---- arithmetic expressions
+  eq $translate(0,Mp)
+   = ("0") .
+  eq $translate(s(I),Mp)
+   = ("(+ 1 " + $translate(I,Mp) + ")") .
+  eq $translate(-(I),Mp)
+   = ("(- " + $translate(I,Mp) + ")") .
+  eq $translate(I + I',Mp)
+   = ("(+ " + $translate(I,Mp) + " " + $translate(I',Mp) + ")") .
+---- TODO add translation for binary minus
+  eq $translate(I * I',Mp)
+   = ("(* " + $translate(I,Mp) + " " + $translate(I',Mp) + ")") .
+  eq $translate(I,Mp)
+   = (ivar-prefix + string(Mp [upTerm(I)] ,10)) [owise] .
+
+
+  op error-nat : -> [Nat] .
+
+  --- generates sort constraints for variables in the natural
+  --- numbers but not in the integer numbers
+  op gen-constraints : String Map{Variable,Nat} -> String .
+  eq gen-constraints(Str,empty)
+   = Str .
+  eq gen-constraints(Str,((V |-> N),Mp))
+   = if downTerm(V,error-nat) :: Nat
+     then gen-constraints("(and (<= 0 " + ivar-prefix + string(N,10) + ") " + Str + ")",Mp) 
+     else gen-constraints(Str,Mp)
+     fi .
+endfm
+
+
+--- SMT interface for checking (un)satisfiability of quantifier
+--- free arithmetic formulas
+fmod SMT-INTERFACE is
+  pr SMT-FORMULA-TRANSLATION .
+
+  op check-sat : String ~> String
+        [special (id-hook StringOpSymbol (callSolvers)
+                  op-hook stringSymbol (<Strings> : ~> String)
+                  op-hook succSymbol (s_ : Nat ~> NzNat))] .
+
+  var  B      : Bool .
+
+  ---- smt-hook is true when the tool is executed in a version
+  ---- of Maude with support for SMT solving; it is false otherwise
+  op smt-hook : -> Bool [memo] .
+  eq smt-hook
+   = getType(upTerm(check-sat("(set-logic QF_LIA) (assert true)"))) == 'String .
+
+
+  --- checks if the given Boolean expression is satisfiable
+  op check-sat : Bool -> Bool [memo] .
+  eq check-sat(B)
+   = if translate(B) == ""
+     then false
+     else check-sat(translate(B)) == "sat"
+     fi .
+
+  op check-unsat : Bool -> Bool [memo] .
+  eq check-unsat(B)
+   = if translate(B) == ""
+     then false
+     else check-sat(translate(B)) == "unsat"
+     fi .
+endfm
+
+--- solving modulo SMT
+fmod SMT-SOLVING is
+  inc PROOF-OBL .
+  pr SMT-INTERFACE .
+
+  var  EqC       : EqCondition .
+  var  M         : Module .
+  var  N         : Nat .
+  var  PO        : ProofObl .
+  var  POSt      : ProofOblStatus . 
+  vars Q Q'      : Qid .
+  var  S         : String .
+  vars T T'      : Term .
+
+  --- status of proof obligations discharged by this heuristic
+  op smt : -> ProofOblStatus .
+  eq po-status-label(smt)
+   = '\g 'SMT '\o .
+
+  --- main command function that checks if a given proof obligation
+  --- can be discharged using the SMT solver
+  op smt-solvable : Module ProofObl -> Bool .
+---(
+  eq ctx-join-unfeas(M,PO)
+   = cp-solved?(crcContextJoinableAndUnfeasibleCPs(M,po-to-cp(PO))) .
+)
+endfm
+
+--- calls the heristics on a given set of proof obligations
+fmod INVA-HEURISTICS is
+  pr CANONIZE-PROOF-OBL .
+  pr TRIVIAL-PROOF .
+  pr CTX-JOINABLE-UNFEASIBLE .
+  pr SMT-SOLVING .
+
+  var  EqC         : EqCondition .
+  var  M           : Module .
+  var  N           : Nat .
+  var  PO          : ProofObl .
+  vars POS POS'    : ProofOblSet .
+  var  POSt        : ProofOblStatus .
+  vars Q Q'        : Qid .
+  vars T T'        : Term .
+
+  op  solve-pos : Module ProofOblSet -> ProofOblSet .
+  op $solve-pos : Module ProofOblSet ProofOblSet -> ProofOblSet .
+  op solve-po   : Module ProofObl -> ProofObl .
+
+  --- tries to solve a collection of proof obligations against
+  --- the heuristics available to the tool
+  eq solve-pos(M,POS)
+   = $solve-pos(M,POS,none) .
+  eq $solve-pos(M,none,POS')
+   = POS' .
+  eq $solve-pos(M, PO POS,POS')
+   = $solve-pos(M,POS, POS' solve-po(M,PO)) .
+ ceq solve-po(M,PO)
+   = if POSt == pending
+     then
+       if triv-join(M,cpo(N,Q,Q',T,T',EqC,POSt)) == true
+       then cpo(N,Q,Q',T,T',EqC,triv-join)
+       else
+         if triv-unfeas(M,cpo(N,Q,Q',T,T',EqC,POSt)) == true
+         then cpo(N,Q,Q',T,T',EqC,triv-unfeas)
+         else
+           if ctx-join-unfeas(M,cpo(N,Q,Q',T,T',EqC,POSt)) == true
+           then cpo(N,Q,Q',T,T',EqC,ctx-join-unfeas)
+           else cpo(N,Q,Q',T,T',EqC,POSt)
+---(
+   TODO add support for SMT solving once the translation has been revised
+)
+           fi
+         fi
+       fi
+     else cpo(N,Q,Q',T,T',EqC,POSt)
+     fi
+  if cpo(N,Q,Q',T,T',EqC,POSt) := canonize-po(M,PO) .   
+endfm
+
+---------------------------------------------
+--- pretty printing for proof obligations ---
+---------------------------------------------
+
+fmod PRETTY-PRINT-UTILS is
+  pr META-LEVEL .
+
+  var  QIL       : QidList .
+
+  --- Printing formats
+ ops failure warning success error2 plain : QidList -> QidList .
+  eq failure(QIL)
+   = '\! '\r 'Failure: '\o QIL '\n .
+  eq warning(QIL)
+   = '\! '\y 'Warning: '\o QIL '\n .
+  eq success(QIL)
+   = '\! '\g 'Success: '\o QIL '\n .
+  eq error2(QIL)
+   = '\! '\r 'Error: '\o QIL '\n .
+  eq plain(QIL)
+   = '\o QIL '\o '\n .
+endfm
+
+--- pretty printing for proof obligations
+fmod PROOF-OBL-SET-PRETTY-PRINT is
+  pr VIEW-META-PRETTY-PRINT .
+  pr PROOF-OBL-SET .
+  pr CONVERSION .
+
+  var  EqC       : EqCondition .
+  var  M         : Module .
+  vars N N'      : Nat .
+  var  PO        : ProofObl .
+  var  POS       : ProofOblSet .
+  var  POSt      : ProofOblStatus .
+  vars Q Q'      : Qid .
+  vars L L'      : Qid .
+  vars QIL       : QidList .
+  vars T T'      : Term .
+
+  --- pretty print for sets of proof obligations
+  op meta-pretty-print-pos : Module ProofOblSet -> QidList .
+  op meta-pretty-print-pos-aux : Module ProofOblSet QidList Nat -> QidList .
+  eq meta-pretty-print-pos(M,POS)
+   = meta-pretty-print-pos-aux(M,POS,nil,0) .
+  eq meta-pretty-print-pos(unitError(QIL), POS:[ProofOblSet]) 
+   = QIL .
+  eq meta-pretty-print-pos-aux(M,none,QIL,N')
+   = QIL .
+  eq meta-pretty-print-pos-aux(M,cpo(N,L,L',T,T',EqC,POSt) POS,QIL,N)
+   = meta-pretty-print-pos-aux(M,POS,
+       QIL
+         (meta-pretty-print-header(N,L,L',POSt)
+           '\n '\s '\s '\s '\s eMetaPrettyPrint(M, T) '\s '\! '= '\o '\s eMetaPrettyPrint(M, T')
+           if EqC == nil
+           then nil
+           else '\n '\s '\! 'if '\o '\s meta-pretty-print-cond(M,EqC,nil)
+           fi),
+       s(N)) .
+  eq meta-pretty-print-pos-aux(M,PO POS,QIL,N)
+   = meta-pretty-print-pos-aux(M,PO POS,QIL,s(N)) [owise] .
+
+  --- pretty print for the header of a proof obligation
+  op meta-pretty-print-header : Nat Qid Qid ProofOblStatus -> QidList .
+  eq meta-pretty-print-header(N,L,L',POSt)
+   = ('\n '\! string2qidList(string(N,10) + ".") '\o '\s
+     meta-pretty-print-labels(L,L') ':
+     '\s po-status-label(POSt)) .
+
+  --- pretty print for labels of a proof obligation
+  op meta-pretty-print-labels : Qid Qid -> QidList .
+  eq meta-pretty-print-labels(L,L')
+   = if L == 'no-label and L' == 'no-label
+     then nil
+     else
+       if L == 'no-label and L' =/= 'no-label
+       then '\o 'from '\c L' '\o
+       else
+         if L =/= 'no-label and L' == 'no-label
+         then '\o 'from '\c L '\o
+         else '\o 'from '\c L '\o '& '\c L' '\o
+         fi
+       fi
+     fi .
+
+  --- pretty print for conditions in proof obligations
+  op meta-pretty-print-cond : Module EqCondition QidList -> QidList .
+  eq meta-pretty-print-cond(M,nil,QIL)
+   = QIL .
+  eq meta-pretty-print-cond(M, (T = T') /\ EqC,QIL)
+   = meta-pretty-print-cond(M,EqC,QIL
+       eMetaPrettyPrint(M,T) '\s '\! '= '\o eMetaPrettyPrint(M,T')
+       if EqC == nil
+       then '.
+       else '\n '\s '\! '/\ '\o
+       fi) .
+  eq meta-pretty-print-cond(M, (T := T') /\ EqC,QIL)
+   = meta-pretty-print-cond(M,EqC,QIL
+       eMetaPrettyPrint(M,T) '\s '\! ':= '\o eMetaPrettyPrint(M,T')
+       if EqC == nil
+       then '.
+       else '\n '\s '\! '/\ '\o
+       fi) .
+endfm
+
+--- Welcome message
+fmod INVA-BANNER is 
+  pr STRING .
+  pr SMT-INTERFACE .
+ ops inva-banner inva-subbanner : -> String .
+  eq inva-banner = "Invariant Analyzer 0.2b - October 29th 2012" .
+  eq inva-subbanner
+   = if smt-hook == true
+     then "(with Church-Rosser Checker 3m and CVC3)"
+     else "(with Church-Rosser Checker 3m)"
+     fi .
+endfm
+
+--- Help information for all the supported commands
+fmod INVA-HELP is
+  pr HELP .
+  pr EXT-QID-LIST .
+  op inva-help : String -> QidList .
+  eq inva-help(S:String)
+    = '\n string2qidList("Commands available from the")  
+      ('\n '\n '\t '\s '\s '\s '\s string2qidList(S:String) '\n '\n)
+      '\t '\! string2qidList("(analyze-stable <pred> in <fmodule> <module> .)") '\o '\n
+      '\t '\t string2qidList("generates the proof obligations for the ground") '\n
+      '\t '\t string2qidList("\\! <pred> \\o -stability of the topmost rewrite theory") '\n
+      '\t '\t string2qidList("specified by \\! <module> \\o under the equational definition") '\n
+      '\t '\t string2qidList("of \\! <pred> \\o in the equational theory specified by \\! <fmodule>; \\o") '\n
+      '\t '\t string2qidList("it tries to discharge the proof obligations and shows the") '\n
+      '\t '\t string2qidList("simplified version of the ones that could not be dischared") '\n
+      '\t '\! string2qidList("(analyze-stable <pred> in <fmodule> <module> assuming <pred> .)") '\o '\n
+      '\t '\t string2qidList("the same as above but assuming the top most rewrite theory") '\n
+      '\t '\t string2qidList("is ground invariant for the second \\! <pred> \\o ") '\n
+      '\t '\! string2qidList("(analyze <pred> implies <pred> in <fmodule> .)") '\o '\n
+      '\t '\t string2qidList("generates the proof obligations for the given implication") '\n
+      '\t '\t string2qidList("to hold under the equational definitions in \\! <fmodule>; \\o ") '\n
+      '\t '\t string2qidList("it tries to discharge the proof obligations and shows the") '\n
+      '\t '\t string2qidList("simplified version of the ones that could not be discharged") '\n
+      '\t '\! string2qidList("(show pos .)") '\o '\n
+      '\t '\t string2qidList("shows the simplified proof obligations that could not be") '\n
+      '\t '\t string2qidList("discharged by the last \\! analyze \\o or \\! analyze-stable \\o command") '\n
+      '\t '\! string2qidList("(show-all pos .)") '\o '\n
+      '\t '\t string2qidList("shows the proof obligations generated by the last \\! analyze \\o") '\n
+      '\t '\t string2qidList("or \\! analyze-stable \\o command") '\n
+      '\t '\! string2qidList("(help .)") '\o '\n
+      '\t '\t string2qidList("shows this help menu") '\n .
+endfm
+
+--- Commands
+fmod INVA-SIGN is
+ inc FULL-MAUDE-SIGN .
+
+  op analyze_implies_in_. : @Bubble@ @Bubble@ @ModExp@ -> @Command@ [ctor] .
+  op analyze-stable_in__. : @Bubble@ @ModExp@ @ModExp@ -> @Command@ [ctor] .
+  op analyze-stable_in__assuming_. : @Bubble@ @ModExp@ @ModExp@ @Bubble@ -> @Command@ [ctor] .
+  op show-all pos . : -> @Command@ [ctor] .
+  op show pos . : -> @Command@ [ctor] .
+endfm
+
+--- The signature of the command are included in FM's grammar
+fmod META-INVA-SIGN is
+ inc META-LEVEL .
+  pr META-FULL-MAUDE-SIGN .
+  pr UNIT .
+
+  op INVA-GRAMMAR : -> FModule .
+  eq INVA-GRAMMAR 
+   = addImports((including 'INVA-SIGN .), GRAMMAR) .
+endfm
+
+fmod INVA-UNIT is
+  pr UNIT .
+endfm
+
+fmod INVA-UNIT-PROCESSING is
+  pr INVA-UNIT .
+  pr UNIT-PROCESSING .
+endfm
+
+fmod INVA-CHECK-INPUT is
+  pr PRETTY-PRINT-UTILS .
+  pr PROOF-OBL-SET-PRETTY-PRINT .
+
+  var  AtS            : AttrSet .
+  vars Cond Cond'     : Condition .
+  vars DB DB' DB''    : Database .
+  vars DB1 DB2 DB3    : Database .
+  vars EqC EqC'       : EqCondition .
+  vars EqS EqS'       : EquationSet .
+  vars ME ME' ME''    : ModuleExpression .
+  vars ME1 ME2 ME3    : ModuleExpression .
+  vars M1 M2 M3       : Module .
+  vars Q Q' Q1 Q2     : Qid .
+  vars QIL QIL'       : QidList .
+  vars RlS RlS'       : RuleSet .
+  vars T T' T1 T2 T3  : Term .
+  vars TL TL' TL1 TL2 : TermList .
+
+  --- Checks if the input is valid; if it is, then the empty
+  --- list is returned; otherwise a list representing the error
+  --- mesages is returned 
+  --- 1. if the two modules are in the database, and the
+  ---    equations are enough and valid, 
+  --- 2. if the two terms parse in the first module and have sort Bool, and
+  --- 3. if enough and valid equations have been given in the module
+  ---    for defining the predicate represented by the first term 
+  op check-input : ModuleExpression Term Term Database -> QidList .
+ ceq check-input(ME, T, T', DB)
+   = if not (metaParse(M1, downTerm(T,nil), 'Bool) :: ResultPair)
+     then error2('The 'first 'formula 'does 'not 'correspond 'to 'a 'predicate 'in getName(ME) '.)
+     else 
+       if not (metaParse(M1, downTerm(T',nil), 'Bool) :: ResultPair)
+       then error2('The 'second 'formula 'does 'not 'correspond 'to 'a 'predicate 'in getName(ME) '.)
+       else
+         if not (has-NOF-eqs?(getEqs(M1), getTerm(metaParse(M1, downTerm(T,nil), 'Bool))))
+         then error2('There 'are 'not 'enough 'equations 'in getName(ME) 'defining 'the 'first 
+                     'predicate.)
+         else
+           if (has-invalid-eqs?(getEqs(M1), getTerm(metaParse(M1, downTerm(T,nil), 'Bool))))
+           then warning('There 'are 'equations 'defining 'the 'first 'predicate 'which
+                        'are 'invalid 'and 'are 'being 'ignored 'in 'the 'analysis.)
+           else nil
+           fi
+         fi
+       fi
+     fi 
+  if < DB1 ; ME1 > := evalModExp(ME, DB)
+  /\ M1 := getFlatModule(ME1, DB1) .
+
+ --- 2. The module is not in the database, then an error
+ ceq check-input(ME, T, T', DB)
+   = QIL
+  if < DB1 ; ME1 > := evalModExp(ME, DB)
+  /\ unitError(QIL) := getFlatModule(ME1, DB1) .
+ --- 4. God knwos what happened, but it is indeed an error
+ eq check-input(ME, T, T', DB)
+  = error2('Unknown 'error 'loading 'the 'modules.) [owise] .
+
+  --- Checks if the input is valid; if it is, then the empty
+  --- list is returned; otherwise a list representing the error
+  --- mesages is returned 
+  --- 1. if the two modules are in the database, and the
+  ---    equations are enough and valid, 
+  --- 2. if the term parses in the first module and have sort Bool, and
+  --- 3. if enough and valid equations have been given in the second module
+  ---    for defining the predicate represented by the given term 
+  op check-input : ModuleExpression ModuleExpression Term Database -> QidList .
+ ceq check-input(ME, ME', T, DB)
+   = QIL
+     if QIL == nil
+     then
+       if has-invalid-conds?(getRls(getFlatModule(modExp(evalModExp(ME, DB)), database(evalModExp(ME, DB)))))
+       then error2('Some 'rewrite 'rules 'in getName(ME') ' 'have 'invalid 'conditions. 
+                   'Remember 'that 'this 'version 'only 'supports 'equational 'conditions
+                   'where 'all 'the 'conditions 'are 'equalities; 'memberships 'and
+                   'matching 'conditions 'will 'be 'supported 'in 'some 'future 'version.)
+       else nil
+       fi
+     else QIL
+     fi
+  if QIL := check-input(ME, T, T, DB) .
+
+  --- Checks if the input is valid; if it is, then the empty
+  --- list is returned; otherwise a list representing the error
+  --- messages is returned 
+  --- 1. if the two modules are in the database, and the
+  ---    equations are enough and valid, 
+  --- 2. if the terms parse in the first module and have sort Bool, and
+  --- 3. if enough and valid equations have been given in the second module
+  ---    for defining the predicate represented by the first term 
+  op check-input : ModuleExpression ModuleExpression Term Term Database -> QidList .
+ ceq check-input(ME, ME', T, T', DB)
+   = QIL
+     if QIL == nil
+     then
+       if has-invalid-conds?(getRls(getFlatModule(modExp(evalModExp(ME, DB)), database(evalModExp(ME, DB)))))
+       then error2('Some 'rewrite 'rules 'in getName(ME') ' 'have 'invalid 'conditions. 
+                   'Remember 'that 'this 'version 'only 'supports 'equational 'conditions
+                   'where 'all 'the 'conditions 'are 'equalities; 'memberships 'and
+                   'matching 'conditions 'may 'be 'supported 'in 'some 'future 'version.)
+       else nil
+       fi
+     else QIL
+     fi
+  if QIL := check-input(ME, T, T', DB) .
+
+  ------------------------------
+  --- Utilities for Descents ---
+  ------------------------------
+  --- Together, this two functions check if at least one equation in the given
+  --- set of equations defines positively the predicate represented by the 
+  --- given term
+ ops has-NOF-eqs? has-invalid-eqs? : EquationSet Term -> Bool .
+ ceq has-NOF-eqs?((eq Q[TL'] = T [AtS] .) EqS, Q[TL]) = true
+  if T =/= 'false.Bool .
+ ceq has-NOF-eqs?((ceq Q[TL'] = T if EqC [AtS] .) EqS, Q[TL]) = true
+  if T =/= 'false.Bool .
+  eq has-NOF-eqs?(EqS, T) = false [owise] .
+  op has-invalid-conds? : RuleSet -> Bool .
+  eq has-invalid-conds?((none).RuleSet) = false . 
+  eq has-invalid-conds?((rl T1 => T2 [AtS] .) RlS) 
+   = has-invalid-conds?(RlS) .  
+  eq has-invalid-conds?((crl T1 => T2 if Cond [AtS] .) RlS) 
+   = if not (Cond :: EqCondition) 
+     then true
+     else has-invalid-conds?(RlS)
+     fi .
+  eq has-invalid-eqs?(EqS, T) 
+   = false [owise] .
+endfm
+
+--- state of the tool
+mod INVA-STATE is
+  pr DATABASE-HANDLING .
+  pr PROOF-OBL-SET .
+
+  --- State of the invariant checker
+  --- TODO : Change the last component of the state to
+  --- @Command@ ... ask Paco why it did not work
+  pr (5TUPLE{ModuleExpression, ProofOblSet, ProofOblSet, QidList, QidList})
+      * (sort Tuple{ModuleExpression, ProofOblSet, ProofOblSet, QidList, QidList} to InvAState)
+      * (op p1_ to getModName_ ,
+         op p2_ to getAllProofObl_,
+         op p3_ to getSimpProofObl_,
+         op p4_ to getMsg_,
+         op p5_ to getCommand_) .
+
+  --- Information regarding the specific name of the object
+  --- class for the application's database
+  sort InvA .
+  subsort InvA < DatabaseClass .
+
+  op InvA : -> InvA .
+  op inva :_ : InvAState -> Attribute .
+endm
+
+
+mod INVA-INFERENCE is
+  pr EQ-DESCENT .
+  pr REW-DESCENT .
+  pr PROOF-OBL-SET-PRETTY-PRINT .
+  pr INVA-HEURISTICS .
+  pr INVA-CHECK-INPUT .
+  pr INVA-STATE .
+
+  var  Atts           : AttributeSet .
+  vars DB DB' DB''    : Database .
+  var  DB1 DB2        : Database .
+  var  X@InvA         : InvA .
+  var  InvASt         : InvAState .
+  vars M M1 M2        : Module .
+  vars ME ME' ME''    : ModuleExpression .
+  vars ME1 ME2        : ModuleExpression .
+  var  O              : Oid .
+  vars POS POS' POS'' : ProofOblSet .
+  vars POS1 POS2      : ProofOblSet .
+  var  Q              : Qid .
+  vars QIL QIL'       : QidList .
+  vars QIL1 QIL2      : QidList .
+  vars T T' T1 T2 T3  : Term .
+
+  --------------------------
+  --- Equational Descent ---
+  --------------------------  
+ crl [analyze-imp] :
+     < O : X@InvA | db : DB, input : ('analyze_implies_in_.['bubble[T],'bubble[T'],T1]), 
+       output : QIL, inva : InvASt, Atts >
+  => < O : X@InvA | db : DB, input : nilTermList, 
+       output : (QIL QIL1), inva : (Q, POS1, POS2, QIL1, QIL2), Atts >
+   if (Q, POS1, POS2, QIL1, QIL2) := analyze-imp(parseModExp(T1), T, T', DB) .
+
+  --- Interface for analysis by equational descent:
+  --- if the input checks ok, then it calls the auxiliary
+  --- function analyzeAux which does all the dirty work, otherwise
+  --- returns the message describing the error with the input
+  op analyze-imp : ModuleExpression Term Term Database -> InvAState .
+ ceq analyze-imp(ME, T, T', DB) 
+   = if QIL == nil
+     then analyze-impAux(ME, T, T', DB)
+     else ('no-name.Qid, none, none, QIL, nil) 
+     fi
+  if QIL := check-input(ME, T, T', DB) .
+
+  --- This function does all the dirty work, by assuming that the
+  --- module is in the database satisfying all the constraints 
+  --- and enough and valid equations defining the first predicate are provided,
+  --- and that both terms represent valid predicates in the signature
+  --- of the module         
+  op analyze-impAux : ModuleExpression Term Term Database -> InvAState .
+ ceq analyze-impAux(ME, T, T', DB)
+   = (ME, 
+      POS'', 
+      POS',
+      plain('Checking '\! getName(M) '\o '||- '\c eMetaPrettyPrint(M, T1) '\o '\s '=> '\c eMetaPrettyPrint(M, T2) '\o '\s '...)
+      plain('Proof 'obligations 'generated: ' string2qidList(string(| POS'' |,10)))
+      plain('Proof 'obligations 'discharged: string2qidList(string(sd(| POS'' |, | POS' |),10)))
+      if POS' == (none).ProofOblSet
+      then '\! '\g 'Success! '\o '\n
+      else 'The 'following 'proof 'obligations 'need 'to 'be 'discharged: '\o
+           meta-pretty-print-pos(M, POS') '\n
+      fi,
+      nil)
+  if < DB' ; ME' > := evalModExp(ME, DB)
+  /\ M     := getFlatModule(ME', DB')
+  /\ T1    := getTerm(metaParse(M, downTerm(T,nil), 'Bool))
+  /\ T2    := getTerm(metaParse(M, downTerm(T',nil), 'Bool))
+  /\ POS1  := eq-descent(M,T1,T2,0)
+  /\ POS   := solve-pos(M,POS1)
+  /\ POS'' := update-pos(POS1,POS)
+  /\ POS'  := filter-not-pending(POS) .
+
+  -----------------------
+  --- Rewrite Descent ---
+  -----------------------  
+ crl [analyze-stable] :
+     < O : X@InvA | db : DB, input : ('analyze-stable_in__.['bubble[T],T1,T2]), 
+       output : QIL, inva : InvASt, Atts >
+  => < O : X@InvA | db : DB, input : nilTermList, 
+       output : (QIL QIL1), inva : (Q, POS1, POS2, QIL1, QIL2), Atts >
+   if (Q, POS1, POS2, QIL1, QIL2) := analyze-stable(parseModExp(T1), parseModExp(T2), T, DB) .
+
+  --- Interface for analysis by rewrite descent:
+  --- if the input checks ok, then it calls the auxiliary
+  --- function analyzeAux which does all the dirty work, otherwise
+  --- returns the message describing the error with the input
+  op analyze-stable : ModuleExpression ModuleExpression Term Database -> InvAState .
+ ceq analyze-stable(ME, ME', T, DB) 
+   = if QIL == nil
+     then analyze-stableAux(ME, ME', T, DB )
+     else ('no-name.Qid, none, none, QIL, nil) 
+     fi
+  if QIL := check-input(ME, ME', T, DB) .
+
+  --- This function does all the dirty work, by assuming that both
+  --- modules are in the database satisfying all the constraints 
+  --- on enough and valid equations defining the predicate
+  op analyze-stableAux : ModuleExpression ModuleExpression Term Database -> InvAState .
+ ceq analyze-stableAux(ME, ME', T, DB)
+   = (ME, 
+      POS'', 
+      POS',
+      plain('Checking '\! getName(M1) '\o '||- '\c eMetaPrettyPrint(M1,T1) '\s '\o '=> 'O '\c 
+             eMetaPrettyPrint(M1,T1) '\o '\s '...)
+      plain('Proof 'obligations 'generated: ' string2qidList(string(| POS'' |,10)))
+      plain('Proof 'obligations 'discharged: 
+             string2qidList(string(sd( | POS'' |, | POS' |),10)))
+      if POS' == (none).ProofOblSet
+      then '\! '\g 'Success! '\o '\n
+      else 'The 'following 'proof 'obligations 'need 'to 'be 'discharged: '\o
+           meta-pretty-print-pos(M1, POS') '\n
+      fi,
+      nil)
+  if < DB1 ; ME1 > := evalModExp(ME, DB)
+  /\ < DB2 ; ME2 > := evalModExp(ME', DB1)
+  /\ M1    := getFlatModule(ME1, DB1)
+  /\ M2    := getFlatModule(ME2, DB2)
+  /\ T1    := getTerm(metaParse(M1, downTerm(T,nil), 'Bool))
+  /\ POS1  := rew-descent(M1,M2,T1,0)
+  /\ POS   := solve-pos(M1,POS1)
+  /\ POS'' := update-pos(POS1,POS)
+  /\ POS'  := filter-not-pending(POS) .
+
+  ---------------------------------------
+  --- Rewrite Descent with Assumption ---
+  ---------------------------------------
+ crl [analyze-stable-with-assumptions] :
+     < O : X@InvA | db : DB, input : ('analyze-stable_in__assuming_.['bubble[T],T1,T2,'bubble[T']]), 
+       output : QIL, inva : InvASt, Atts >
+  => < O : X@InvA | db : DB, input : nilTermList, 
+       output : (QIL QIL1), inva : (Q, POS1, POS2, QIL1, QIL2), Atts >
+   if (Q, POS1, POS2, QIL1, QIL2) := analyze-stable+(parseModExp(T1), parseModExp(T2), T, T', DB) .
+
+  --- Interface for analysis by rewrite descent:
+  --- if the input checks ok, then it calls the auxiliary
+  --- function analyzeAux which does all the dirty work, otherwise
+  --- returns the message describing the error with the input
+  op analyze-stable+ : ModuleExpression ModuleExpression Term Term Database -> InvAState .
+ ceq analyze-stable+(ME, ME', T, T', DB) 
+   = if QIL == nil
+     then analyze-stable+Aux(ME, ME', T, T', DB)
+     else ('no-name.Qid, none, none, QIL, nil) 
+     fi
+  if QIL := check-input(ME, ME', T, T', DB) .
+
+  --- This function does all the dirty work, by assuming that both
+  --- modules are in the database satisfying all the constraints 
+  --- on enough and valid equations defining the first predicate
+  op analyze-stable+Aux : ModuleExpression ModuleExpression Term Term Database -> InvAState .
+ ceq analyze-stable+Aux(ME, ME', T, T', DB)
+   = (ME, 
+      POS'', 
+      POS',
+      plain('Checking '\! getName(M1) '\o '||- '\c eMetaPrettyPrint(M1,T1) '\s '\o '=> 'O '\c 
+            eMetaPrettyPrint(M1,T1) '\o '\s 'assuming 
+            '\c eMetaPrettyPrint(M1,T2) '\o '\s '... )
+      plain('Proof 'obligations 'generated: ' string2qidList(string(| POS'' |,10)))
+      plain('Proof 'obligations 'discharged: string2qidList(string(
+             sd(| POS'' |,| POS' |),10)))
+      if POS' == (none).ProofOblSet
+      then '\! '\g 'Success! '\o '\n
+      else 'The 'following 'proof 'obligations 'could 'not 'be 'discharged: '\o
+           meta-pretty-print-pos(M1, POS') '\n
+      fi,
+      nil)
+  if < DB1 ; ME1 > := evalModExp(ME, DB)
+  /\ < DB2 ; ME2 > := evalModExp(ME', DB1)
+  /\ M1    := getFlatModule(ME1, DB1)
+  /\ M2    := getFlatModule(ME2, DB2)
+  /\ T1    := getTerm(metaParse(M1, downTerm(T,nil), 'Bool))
+  /\ T2    := getTerm(metaParse(M1, downTerm(T',nil), 'Bool))
+  /\ POS1  := rew-descent+(M1,M2,T1,T2 = 'true.Bool,0)
+  /\ POS   := solve-pos(M1,POS1) 
+  /\ POS'' := update-pos(POS1,POS)
+  /\ POS'  := filter-not-pending(POS) .
+
+
+  -----------------------------------------
+  --- presentation of proof obligations ---
+  -----------------------------------------
+
+  rl [show-POs] :
+     < O : X@InvA | db : DB, input : ('show`pos`..@Command@), 
+       output : QIL1, inva : (ME, POS, POS', QIL, QIL'), Atts >
+  => < O : X@InvA | db : DB, input : nilTermList, 
+       output : (QIL1
+           if ME == 'no-name.Qid
+           then 'No 'proof 'obligations 'to 'show. 'One 'of 'the 'analyzing 
+                'commands 'must 'be 'successfully 'executed 'previously. '\n
+           else
+             if POS' == (none).ProofOblSet
+             then QIL
+             else 'The 'following 'proof 'obligations 'could 'not 'be 'discharged: '\o
+                  meta-pretty-print-pos(
+                                  getFlatModule(modExp(evalModExp(ME, DB)), 
+                                    database(evalModExp(ME, DB))), 
+                                  POS') '\n
+             fi  
+           fi),
+       inva : (ME, POS, POS', QIL, QIL'), Atts > .
+
+  rl [show-all-POs] :
+     < O : X@InvA | db : DB, input : ('show-all`pos`..@Command@), 
+       output : QIL1, inva : (ME, POS, POS', QIL, QIL'), Atts >
+  => < O : X@InvA | db : DB, input : nilTermList, 
+       output : (QIL1
+           if ME == 'no-name.Qid
+           then 'No 'proof 'obligations 'to 'show. 'One 'of 'the 'analyzing 
+                'commands 'must 'be 'successfully 'executed 'previously. '\n
+           else
+             if POS == (none).ProofOblSet
+             then 'There 'are 'not 'proof 'obligations.
+             else 'These 'are 'all 'proof 'obligations: '\o
+                  meta-pretty-print-pos(
+                                  getFlatModule(modExp(evalModExp(ME, DB)), 
+                                    database(evalModExp(ME, DB))), 
+                                    POS) '\n
+             fi  
+           fi),
+       inva : (ME, POS, POS', QIL, QIL'), Atts > .
+
+endm
+
+
+--- Main module putting all the functionality together
+mod INVA is
+  pr INVA-BANNER .
+  pr INVA-HELP .
+  pr META-INVA-SIGN .
+  pr INVA-INFERENCE .
+ inc LOOP-MODE .
+
+  subsort Object < State .
+
+  op o : -> Oid .
+  op init : -> System .
+
+  var  Atts : AttributeSet .
+  var  X@InvA : DatabaseClass .
+  var  O : Oid .
+  var  DB : Database .
+  var  ME : Header .
+  var  QI : Qid .
+  vars QIL QIL' QIL'' : QidList .
+  var  TL : TermList .
+  var  N : Nat .
+  vars RP RP' : ResultPair .
+
+  rl [init] :
+     init
+     => [nil,
+         < o : InvA | 
+            db : initialDatabase,
+            input : nilTermList, output : nil, 
+            default : 'CONVERSION ,
+            inva : ('no-name.Qid, none, none, nil, nil) >,
+         ('\n '\t '\s '\s '\s '\s string2qidList(inva-banner) '\n
+              '\t '\s '\s '\s '\s string2qidList(inva-subbanner) '\n)] .
+
+  rl [in] :
+    [QI QIL, 
+     < O : X@InvA | 
+         db : DB, input : nilTermList, output : nil, default : ME, Atts >, 
+     QIL']
+    => if metaParse(INVA-GRAMMAR, QI QIL, '@Input@) :: ResultPair
+       then [nil, 
+             < O : X@InvA | db : DB, 
+                 input : getTerm(metaParse(INVA-GRAMMAR, QI QIL, '@Input@)),
+                 output : nil, default : ME, Atts >, 
+              QIL'] 
+       else [nil, 
+             < O : X@InvA | db : DB, input : nilTermList, 
+                 output : ('\r 'Warning: 
+                           printSyntaxError(metaParse(INVA-GRAMMAR, QI QIL, '@Input@), 
+                             QI QIL) 
+                           '\n
+                           '\r 'Error: '\o 'No 'parse 'for 'input. '\n), 
+                 default : ME, Atts >, 
+             QIL'] 
+       fi .
+
+  rl [out] :
+    [QIL, 
+     < O : X@InvA | 
+         db : DB, input : TL, output : (QI QIL'), default : ME, Atts >, 
+     QIL'']
+    => [QIL, 
+        < O : X@InvA | 
+            db : DB, input : TL, output : nil, default : ME, Atts >, 
+        (QI QIL' QIL'')] .
+
+  rl [help] :
+     < O : X@InvA | input : ('help`..@Command@), output : QIL, Atts >
+     => 
+     < O : X@InvA | input : nilTermList, 
+       output : inva-help(inva-banner), Atts > .
+endm
+
+loop init .
+
+set show loop stats on .
+set show loop timing on .
+set show advisories off .
