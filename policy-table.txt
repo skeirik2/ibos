@@ -1,0 +1,32 @@
+## kernelsReceivesOPMessage Forwarding Table
+
+PPI  - PipeProcId
+NI   - NetProcId
+NNPI - NonNetPipeId
+WI   - WebAppId
+NWPI - NonWebPipeId
+
+#   #  Payload       #  Policy             #  Forwarder #  Result
+1   #  ORG -> PPI2   #  PPI     -> PPI2    #  PPI       #  PPI   -> PPI2
+2   #  ORG -> NNPI2  #  webapp  -> NNPI2   #  WI        #  WI    -> NNPI2
+3   #  ORG -> WI     #  NNPI1   -> webapp  #  NNPI1     #  NNPI1 -> WI
+4   #  ORG -> NWPI2  #  network -> NWPI2   #  NI        #  NI    -> NWPI2
+5   #  ORG -> NI     #  NWPI1   -> network #  NWPI1     #  NWPI1 -> NI2
+
+6CA #  ORG -> NI2    #  webapp  -> network #  WI        #  WI    -> NI                    (because match weblabels(WI,L) -> networklabels(NI,L,L'))
+6CB #  ORG -> NI2    #  webapp  -> network #  WI        #  WI    -> new net process label (no match for weblabels(WI,L))
+
+7CA #  ORG -> WI2    #  network -> webapp  #  NI        #  NI    -> WI2 (if label match)
+7CB #  ORG -> WI2    #  network -> webapp  #  NI        #  dropped      (if no label match)
+
+8   #  ORG -> WI2    #  ui      -> webapp  #  ui        #  ui    -> WI2    (MSG-SWITCH-TAB) (kernelDo)
+9   #  ORG -> webapp #  ui      -> webapp  #  ui        #  ui    -> webapp (MSG-NEW-URL)    (kernelDo)
+
+10  #  ORG -> PPI2   #  none               #  PPI       #  dropped
+
+[kernelsForwards] - moved handedly currently message to buffer of other process
+[tab-change]      - 8
+[new-url]         - 9
+[change-display]  - randomly change display to show newly rendered webapp
+
+NOTE: since ui represents user input, it never receives any messages, it only sends them

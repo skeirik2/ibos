@@ -1,5 +1,0 @@
-Maude> (cch IBOS-PREDS .)
-rewrites: 18767431 in 220183279ms cpu (230455430ms real) (85 rewrites/second)
-Coherence checking of IBOS-PREDS
-  All critical pairs have been rewritten and no rewrite with rules can happen 
-  at non-overlapping positions of equations left-hand sides.

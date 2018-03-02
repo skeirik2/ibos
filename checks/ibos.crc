@@ -1,6 +1,0 @@
-Maude> (ccr KERNEL .)
-rewrites: 15472344 in 45954ms cpu (45950ms real) (336685 rewrites/second)
-Church-Rosser check for KERNEL
-              All critical pairs have been joined.
-              The specification is locally-confluent.
-              The module is sort-decreasing.
