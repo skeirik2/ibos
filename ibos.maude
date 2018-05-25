@@ -1,18 +1,74 @@
 set include BOOL off .
 
-fmod NAT+ is
-  pr NAT .
+fmod BOOL-NO-BUILTIN is
+  pr TRUTH-VALUE .
+  op _and_ : Bool Bool -> Bool [assoc comm prec 50] .
+  op _or_  : Bool Bool -> Bool [assoc comm] .
+  op not_  : Bool -> Bool .
+  op _==_  : Bool Bool -> Bool . **** stub for real equality/disequality
+  op _=/=_ : Bool Bool -> Bool .
+  vars B : Bool .
+  eq B and true  = B     [variant] .
+  eq B and false = false [variant] .
+  eq B or false  = B     [variant] .
+  eq B or true   = true  [variant] .
+  eq not true    = false [variant] .
+  eq not false   = true  [variant] .
+endfm
 
-**** Equality enrichment (added by Camilo)
+fmod NAT-CTOR-NO-BUILTIN is
+  pr BOOL-NO-BUILTIN .
+  sorts Nat NzNat .
+  subsorts NzNat < Nat .
+  op 0   : -> Nat             [ctor] .
+  op 1   : -> NzNat           [ctor] .
+  op _+_ : NzNat Nat -> NzNat [ctor assoc comm id: 0] .
+  op _+_ : Nat   Nat -> Nat   [ctor assoc comm id: 0] .
+endfm
+
+fmod NAT-NO-BUILTIN is
+  pr NAT-CTOR-NO-BUILTIN .
+  op s     : Nat -> Nat .      **** operator is only used 6 times
+  op _<_   : Nat Nat -> Bool .
+  op _<=_  : Nat Nat -> Bool .
+  op _==_  : Nat Nat -> Bool . **** stub for real equality/disequality
+  op _=/=_ : Nat Nat -> Bool .
+  eq s(N:Nat)                           = N:Nat + 1 [variant] .
+  eq N:Nat           <  P:NzNat + N:Nat = true      [variant] .
+  eq N:Nat + M:Nat   <  N:Nat           = false     [variant] .
+  eq P:NzNat + N:Nat <= N:Nat           = false     [variant] .
+  eq N:Nat           <= N:Nat + M:Nat   = true      [variant] .
+endfm
+
+fmod NAT+ is
+  pr NAT-NO-BUILTIN .
   op _~_ : Nat Nat -> Bool [comm] .
-  eq N:Nat ~ N:Nat
-   = true .
-  eq 0 ~ s(N':Nat)
-   = false .
-  eq s(N:Nat) ~ s(N':Nat)
-   = N:Nat ~ N':Nat .
-  eq N:Nat ~ s(N:Nat)
-   = false .
+  eq N:Nat ~ N:Nat           = true .
+  eq N:Nat ~ N:Nat + P:NzNat = false .
+
+  **** constants defined for convenience
+  ops 2 3 4 5 6 7 8 9 10 11 12 13 14 15 80 81 256 500 1023 1024 1050 1056 : -> Nat .
+  eq 2    = 1 + 1 .
+  eq 3    = 1 + 1 + 1 .
+  eq 4    = 1 + 1 + 1 + 1 .
+  eq 5    = 1 + 1 + 1 + 1 + 1 .
+  eq 6    = 1 + 1 + 1 + 1 + 1 + 1 .
+  eq 7    = 1 + 1 + 1 + 1 + 1 + 1 + 1 .
+  eq 8    = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 .
+  eq 9    = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 .
+  eq 10   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 .
+  eq 11   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 .
+  eq 12   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 .
+  eq 13   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 .
+  eq 14   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 .
+  eq 15   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 .
+  **** difference between non-consecutive numbers should be greater than 1
+  eq 80   = 15   + 1 + 1 + 1 .
+  eq 81   = 80   + 1 .
+  eq 256  = 81   + 1 + 1 + 1 .
+  eq 1023 = 256  + 1 + 1 + 1 .
+  eq 1024 = 1023 + 1 .
+  eq 1056 = 1024 + 1 + 1 + 1 + 1 .
 endfm
 
 fmod PROC-ID is
@@ -131,6 +187,10 @@ fmod LABEL is pr NAT+ .
   op about-blank :     -> Label      [ctor] .
   op url         : Nat -> Label      [ctor] .
   op nolabel     :     -> MaybeLabel [ctor] .
+
+  **** use var-sat built-in equality/diseqaulity
+  op _==_  : Label Label -> Bool .
+  op _=/=_ : Label Label -> Bool .
 
   **** Equality enrichment (added by Camilo)
   op _~_ : Label Label -> Bool [comm] .
