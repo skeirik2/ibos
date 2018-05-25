@@ -169,15 +169,10 @@ endfm
 fmod MSG-LIST is pr MSG .
   **** message list definition
   sort MessageList .
+  subsort Message < MessageList .
   op none : -> Message [ctor] .
   op mt   : -> MessageList [ctor] .
-  op _,_  : Message MessageList -> MessageList [ctor] .
-  op _;_  : MessageList MessageList -> MessageList .
-  **** message list idempotency/concatenation
-  eq mt ; ML':MessageList =
-    ML':MessageList .
-  eq (M:Message, ML:MessageList) ; ML':MessageList =
-    M:Message, (ML:MessageList ; ML':MessageList) .
+  op _;_  : MessageList MessageList -> MessageList [ctor assoc id: mt] .
 endfm
 
 fmod PIPEPROC is inc MSG-LIST . inc SYS .
