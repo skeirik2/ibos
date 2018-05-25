@@ -456,30 +456,30 @@ mod KERNEL is
 **** kernel tells network process to fetch data for a webapp
 **** TODO: check that returnTo does the right thing (it seems like returnTo should be stored per URL to fetch)
   rl [request-from-webapp] :
-     { < NI | returnTo(PI),  out(LL),             fromKernel(msg(PI', NI, MSG-FETCH-URL, L), ML'), Att > Cnf }
-  => { < NI | returnTo(PI'), out(LL ; (L, mtLL)), fromKernel(ML') ,                                Att > Cnf } .
+     { < NI | returnTo(PI),  out(LL),     fromKernel(msg(PI', NI, MSG-FETCH-URL, L), ML'), Att > Cnf }
+  => { < NI | returnTo(PI'), out(LL ; L), fromKernel(ML') ,                                Att > Cnf } .
 
 **** Made into a labeled topmost rule from module NETWORK
 **** network process moves data from its DMA response buffer into its input buffer
   rl [proc-in] :
-     { < NI | in(LL),               mem-in(L)       , Att > Cnf }
-  => { < NI | in(LL ; (L, mtLL)) ,  mem-in(nolabel) , Att > Cnf } .
+     { < NI | in(LL),       mem-in(L)       , Att > Cnf }
+  => { < NI | in(LL ; L) ,  mem-in(nolabel) , Att > Cnf } .
 
 **** Made into a topmost rule from module NETWORK
 **** network process moves data from its output buffer into its DMA request buffer
   rl [proc-out] :
-     { < NI | out(L, LL) , mem-out(nolabel) , Att > Cnf }
+     { < NI | out(L ; LL), mem-out(nolabel) , Att > Cnf }
   => { < NI | out(LL)    , mem-out(L)       , Att > Cnf } .
 
   rl [nic1] :
-     { < nic | nic-out(L & LS) , in(LL')             , Att > Cnf }
-  => { < nic | nic-out(LS)     , in(LL' ; (L, mtLL)) , Att > Cnf } .
+     { < nic | nic-out(L & LS) , in(LL')     , Att > Cnf }
+  => { < nic | nic-out(LS)     , in(LL' ; L) , Att > Cnf } .
 
 **** Made into a topmost rule from module NETWORK
 **** network process hands data back to other process (in this case: webapp)
   rl [msg-to-kernel] :
-     { < NI | returnTo(PI) , in(L, LL), toKernel(ML) ,                                       Att > Cnf }
-  => { < NI | returnTo(PI) , in(LL)   , toKernel(ML ; (msg(NI, PI, MSG-RETURN-URL, L),mt)) , Att > Cnf } .
+     { < NI | returnTo(PI) , in(L ; LL), toKernel(ML) ,                                       Att > Cnf }
+  => { < NI | returnTo(PI) , in(LL)    , toKernel(ML ; (msg(NI, PI, MSG-RETURN-URL, L),mt)) , Att > Cnf } .
 
 **** Made into a topmost rule from module KERNEL-POLICIES
 **** kernel moves dma request from dma request buffer to NIC
@@ -496,7 +496,7 @@ mod KERNEL is
   rl [mem-in] :
      { < NI     | mem-in(nolabel) ,                    Att  >
        < kernel | networklabels(pi(NI, L, L'), NPIS) , Att2 >
-       < nic    | in(L', LL) ,                         Att3 > Cnf }
+       < nic    | in(L' ; LL) ,                        Att3 > Cnf }
   => { < NI     | mem-in(L') ,                         Att  >
        < kernel | networklabels(pi(NI, L, L'), NPIS) , Att2 >
        < nic    | in(LL) ,                             Att3 > Cnf } .
