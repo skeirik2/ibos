@@ -439,20 +439,20 @@ mod KERNEL is
 
 **** Made into a topmost labeled conditional rule from module WEBAPP
   rl [fetch] :
-     { < WI | rendered(L) ,  URL(L') , loading(false) , toKernel(ML) ,                                         Att > Cnf }
-  => { < WI | rendered(L) ,  URL(L') , loading(true)  , toKernel(ML ; (msg(WI,network,MSG-FETCH-URL,L'),mt)) , Att > Cnf } .
+     { < WI | rendered(L) ,  URL(L') , loading(false) , toKernel(ML) ,                                    Att > Cnf }
+  => { < WI | rendered(L) ,  URL(L') , loading(true)  , toKernel(ML ; msg(WI,network,MSG-FETCH-URL,L')) , Att > Cnf } .
 
 **** Made into a labeled topmost conditional rule from module WEBAPP
   rl [render] :
-     { < WI | rendered(L)  , URL(L') , loading(true) , fromKernel(msg(PI, WI, MSG-RETURN-URL,L2),ML) , Att > Cnf }
-  => { < WI | rendered(L2) , URL(L') , loading(true) , fromKernel(ML) ,                                Att > Cnf } .
+     { < WI | rendered(L)  , URL(L') , loading(true) , fromKernel(msg(PI, WI, MSG-RETURN-URL,L2) ; ML) , Att > Cnf }
+  => { < WI | rendered(L2) , URL(L') , loading(true) , fromKernel(ML) ,                                  Att > Cnf } .
 
 **** Made into a topmost rule from module NETWORK
 **** kernel tells network process to fetch data for a webapp
 **** TODO: check that returnTo does the right thing (it seems like returnTo should be stored per URL to fetch)
   rl [request-from-webapp] :
-     { < NI | returnTo(PI),  out(LL),     fromKernel(msg(PI', NI, MSG-FETCH-URL, L), ML'), Att > Cnf }
-  => { < NI | returnTo(PI'), out(LL ; L), fromKernel(ML') ,                                Att > Cnf } .
+     { < NI | returnTo(PI),  out(LL),     fromKernel(msg(PI', NI, MSG-FETCH-URL, L) ; ML'), Att > Cnf }
+  => { < NI | returnTo(PI'), out(LL ; L), fromKernel(ML') ,                                 Att > Cnf } .
 
 **** Made into a labeled topmost rule from module NETWORK
 **** network process moves data from its DMA response buffer into its input buffer
@@ -473,8 +473,8 @@ mod KERNEL is
 **** Made into a topmost rule from module NETWORK
 **** network process hands data back to other process (in this case: webapp)
   rl [msg-to-kernel] :
-     { < NI | returnTo(PI) , in(L ; LL), toKernel(ML) ,                                       Att > Cnf }
-  => { < NI | returnTo(PI) , in(LL)    , toKernel(ML ; (msg(NI, PI, MSG-RETURN-URL, L),mt)) , Att > Cnf } .
+     { < NI | returnTo(PI) , in(L ; LL), toKernel(ML) ,                                  Att > Cnf }
+  => { < NI | returnTo(PI) , in(LL)    , toKernel(ML ; msg(NI, PI, MSG-RETURN-URL, L)) , Att > Cnf } .
 
 **** Made into a topmost rule from module KERNEL-POLICIES
 **** kernel moves dma request from dma request buffer to NIC
@@ -500,7 +500,7 @@ mod KERNEL is
 **** policy allows message from PPI1 to PPI2 with MsgType
   rl [kernelReceivesOPMessage-pa1] :
      { < kernel | handledCurrently(none), msgPolicy(policy(PPI1,PPI2,MT),MP), Att  >
-       < PPI1   | toKernel(msg(ORG,PPI2,MT,L), ML),                           Att2 > Cnf }
+       < PPI1   | toKernel(msg(ORG,PPI2,MT,L) ; ML),                          Att2 > Cnf }
   =>
      { < kernel | handledCurrently(msg(PPI1, PPI2, MT, L)), msgPolicy(policy(PPI1,PPI2,MT),MP), Att  >
        < PPI1   | toKernel(ML) ,                                                                Att2 > Cnf } .
@@ -508,7 +508,7 @@ mod KERNEL is
 **** policy allows message from webapp to NNPI2 (not network proc) with MT
   rl [kernelReceivesOPMessage-pa2] :
      { < kernel | handledCurrently(none), msgPolicy(policy(webapp,NNPI2,MT),MP), Att  >
-       < WI     | toKernel(msg(ORG, NNPI2, MT, L), ML),                          Att2 > Cnf }
+       < WI     | toKernel(msg(ORG, NNPI2, MT, L) ; ML),                         Att2 > Cnf }
   =>
      { < kernel | handledCurrently(msg(WI, NNPI2, MT, L)), msgPolicy(policy(webapp,NNPI2,MT),MP), Att  >
        < WI     | toKernel(ML) ,                                                                  Att2 > Cnf } .
@@ -516,7 +516,7 @@ mod KERNEL is
 **** policy allows message from NNPI1 (not network proc) to webapp with MT
   rl [kernelReceivesOPMessage-pa3] :
      { < kernel | handledCurrently(none), msgPolicy(policy(NNPI1,webapp,MT),MP), Att  >
-       < NNPI1  | toKernel(msg(ORG, WI, MT, L), ML),                             Att2 > Cnf }
+       < NNPI1  | toKernel(msg(ORG, WI, MT, L) ; ML),                            Att2 > Cnf }
   =>
      { < kernel | handledCurrently(msg(NNPI1, WI, MT, L)), msgPolicy(policy(NNPI1,webapp,MT),MP), Att  >
        < NNPI1  | toKernel(ML) ,                                                                  Att2 > Cnf } .
@@ -524,7 +524,7 @@ mod KERNEL is
 **** policy allows message from network proc to NWPI2 (not webapp) with MT
   rl [kernelReceivesOPMessage-pa4] :
      { < kernel | handledCurrently(none), msgPolicy(policy(network,NWPI2,MT),MP), Att  >
-       < NI     | toKernel(msg(ORG, NWPI2, MT, L), ML),                           Att2 > Cnf }
+       < NI     | toKernel(msg(ORG, NWPI2, MT, L) ; ML),                          Att2 > Cnf }
   =>
      { < kernel | handledCurrently(msg(NI, NWPI2, MT, L)), msgPolicy(policy(network,NWPI2,MT),MP), Att  >
        < NI     | toKernel(ML),                                                                    Att2 > Cnf } .
@@ -532,7 +532,7 @@ mod KERNEL is
 **** policy allows message from NWPI1 (not webapp) to network proc with MT
   rl [kernelReceivesOPMessage-pa5] :
      { < kernel | handledCurrently(none), msgPolicy(policy(NWPI1,network,MT),MP), Att  >
-       < NWPI1  | toKernel(msg(ORG, NI, MT, L), ML),                              Att2 > Cnf }
+       < NWPI1  | toKernel(msg(ORG, NI, MT, L) ; ML),                             Att2 > Cnf }
   =>
      { < kernel | handledCurrently(msg(NWPI1, NI, MT, L)), msgPolicy(policy(NWPI1,network,MT),MP), Att  >
        < NWPI1  | toKernel(ML) ,                                                                   Att2 > Cnf } .
@@ -554,7 +554,7 @@ mod KERNEL is
            networklabels(pi(NI',L,L'),NPIS),
            Att >
        < WI     |
-           toKernel(msg(ORG, NI, MT, L'), ML),
+           toKernel(msg(ORG, NI, MT, L') ; ML),
 	   Att2 >
        Cnf }
   =>
@@ -582,7 +582,7 @@ mod KERNEL is
            nextNetworkProc(N),
            Att >
        < WI     |
-           toKernel(msg(ORG, NI, MT, L'), ML),
+           toKernel(msg(ORG, NI, MT, L') ; ML),
 	   Att2 >
        Cnf }
   =>
@@ -615,7 +615,7 @@ mod KERNEL is
            networklabels(pi(NI,L,L'),NPIS),
            Att >
        < NI     |
-           toKernel(msg(ORG, WI, MT, L''), ML),
+           toKernel(msg(ORG, WI, MT, L'') ; ML),
 	   Att2 >
        Cnf }
   =>
@@ -639,7 +639,7 @@ mod KERNEL is
            networklabels(NPIS),
            Att >
        < network(N) |
-           toKernel(msg(ORG, webapp(N'), MT, L''), ML),
+           toKernel(msg(ORG, webapp(N'), MT, L'') ; ML),
 	   Att2 > Cnf }
   =>
      { < kernel |
@@ -662,7 +662,7 @@ mod KERNEL is
            msgPolicy(policy(ui,webapp,MSG-SWITCH-TAB),MP),
            Att  >
        < ui     |
-           toKernel(msg(ORG, WI, MSG-SWITCH-TAB, L), ML),
+           toKernel(msg(ORG, WI, MSG-SWITCH-TAB, L) ; ML),
            Att2 >
        Cnf }
   =>
@@ -678,7 +678,7 @@ mod KERNEL is
 **** policy allows message from UI to change current webapp to a new webapp loading URL with MSG-NEW-URL
   rl [kernelReceivesOPMessage-pa9] :
      { < kernel | handledCurrently(none), msgPolicy(policy(ui,webapp,MSG-NEW-URL),MP), Att  >
-       < ui     | toKernel(msg(ORG,webapp, MSG-NEW-URL, L), ML),                       Att2 >
+       < ui     | toKernel(msg(ORG,webapp, MSG-NEW-URL, L) ; ML),                      Att2 >
        Cnf }
   =>
      { < kernel |
@@ -693,7 +693,7 @@ mod KERNEL is
 **** no policy allowed this, therefore implicitly disallowed and dropped
   rl [kernelReceivesOPMessage-pa10] :
      { < kernel | handledCurrently(none), msgPolicy(MP), Att  >
-       < PPI    | toKernel(msg(ORG, PPI', MT, L), ML),   Att2 > Cnf }
+       < PPI    | toKernel(msg(ORG, PPI', MT, L) ; ML),  Att2 > Cnf }
   =>
      { < kernel | handledCurrently(none), msgPolicy(MP), Att  >
        < PPI    | toKernel(ML),                          Att2 > Cnf } .
@@ -703,8 +703,8 @@ mod KERNEL is
      { < kernel | handledCurrently(msg(ORG, PPI', MT, L)) , Att  >
        < PPI'   | fromKernel(ML) ,                          Att2 > Cnf }
   =>
-     { < kernel | handledCurrently(none),                       Att  >
-       < PPI'   | fromKernel(ML ; (msg(ORG, PPI', MT, L),mt)) , Att2 > Cnf } .
+     { < kernel | handledCurrently(none),                  Att  >
+       < PPI'   | fromKernel(ML ; msg(ORG, PPI', MT, L)) , Att2 > Cnf } .
 
 **** Made into a topmost rule from module KERNEL-POLICIES
   rl [tab-change] :
