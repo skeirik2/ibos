@@ -144,13 +144,9 @@ endfm
 
 fmod LABEL-LIST is pr LABEL .
   sort LabelList .
+  subsort Label < LabelList .
   op mtLL : -> LabelList [ctor] .
-  op _,_ : Label LabelList -> LabelList [ctor] .
-  op _;_ : LabelList LabelList -> LabelList .
-  eq mtLL ; LL':LabelList
-   = LL':LabelList .
-  eq (L:Label, LL:LabelList) ; LL':LabelList
-   = L:Label, (LL:LabelList ; LL':LabelList) .
+  op _;_ : LabelList LabelList -> LabelList   [ctor assoc id: mtLL] .
 endfm
 
 fmod LABEL-SET is pr LABEL .
