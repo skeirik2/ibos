@@ -16,6 +16,19 @@ fmod BOOL-NO-BUILTIN is
   eq not false   = true  [variant] .
 endfm
 
+fmod PRED is pr BOOL-NO-BUILTIN .
+  sort Pred .
+  op tt : -> Pred [ctor] .
+  op _=/=_  : Pred Pred -> Bool .
+  op _andP_ : Pred Pred -> Pred .
+  var P : Pred .
+  eq tt andP tt = tt [variant] .
+  --- op _orP_  : Pred Pred -> Pred .
+  --- eq tt orP  P  = tt [variant] .
+  --- eq P  orP  tt = tt [variant] .
+endfm
+
+
 fmod NAT-CTOR-NO-BUILTIN is
   pr BOOL-NO-BUILTIN .
   sorts Nat NzNat .
@@ -332,7 +345,7 @@ fmod NIC is inc SYS . inc LABEL-SET . inc LABEL-LIST .
   op nic-in  : LabelList -> Attribute [ctor] .
 endfm
 
-fmod KERNEL-POLICIES is inc SYS . pr MSG . pr LABEL .
+fmod KERNEL-POLICIES is inc SYS . inc PRED . pr MSG . pr LABEL .
 **** define how to build a single policy! then add them into the initial configuration
 **** Q: where to find the policies? A: ibos_source/dKernel/access.h
 **** ibos_source/dKernel/access.cc (line 195 and down; shows who can
@@ -430,27 +443,18 @@ fmod KERNEL-POLICIES is inc SYS . pr MSG . pr LABEL .
 **** message to be sent - initial policy set defined in RUN
 **** Transformed into labeled conditional rules in module KERNEL
 ****
-  var L L1 L2 : Label . var N N' : Nat . var NPIS : NetworkProcInfoSet . var WPIS : WebappProcInfoSet .
-**** auxiliary function for checking that no network process
-**** links to a given label
-  op no-networkproc-for-label : Label NetworkProcInfoSet -> Bool .
-  eq [nnpl1] : no-networkproc-for-label(L,mtNPIS)                      = true .
-  eq [nnpl2] : no-networkproc-for-label(L,(pi(network(N),L1,L2),NPIS)) = not (L ~ L2) and no-networkproc-for-label(L,NPIS) .
-  eq [nnpl3] : no-networkproc-for-label(L,(pi(network,L1,L2),NPIS))    = no-networkproc-for-label(L,NPIS) .
-**** Auxiliary functions for checking connections for network procs and
+  var L L' : Label . var N : Nat . var NPIS : NetworkProcInfoSet . var WPIS : WebappProcInfoSet .
+**** auxiliary function for checking that a network process links to a given label
+  op networkproc-for-label : Label NetworkProcInfoSet -> Pred .
+  eq [nnpl] : networkproc-for-label(L',(pi(network(N),L,L'),NPIS)) = tt .
+**** auxiliary functions for checking connections for network procs and
 **** webapps in the information sets that are defined in the kernel
-**** checks that the information of a given procid of sort natural is not in a set of
-**** network information
-  op no-networkproc : Nat NetworkProcInfoSet -> Bool .
-  eq [nnp1] : no-networkproc(N,mtNPIS)                       = true .
-  eq [nnp2] : no-networkproc(N,(pi(network(N'),L1,L2),NPIS)) = not(N ~ N') and no-networkproc(N,NPIS) .
-  eq [nnp3] : no-networkproc(N,(pi(network,L1,L2),NPIS))     = no-networkproc(N,NPIS) .
-**** checks that the information of a given procid of sort natural is not in a set of
-**** webapp information
-  op no-webapp : Nat WebappProcInfoSet -> Bool .
-  eq [nwa1] : no-webapp(N,mtWPIS)                   = true .
-  eq [nwa2] : no-webapp(N,(pi(webapp(N'),L1),WPIS)) = not(N ~ N') and no-webapp(N,WPIS) .
-  eq [nwa3] : no-webapp(N,(pi(webapp,L1),WPIS))     = no-webapp(N,WPIS) .
+**** checks if a particular network process exists in a kernel-maintained set of network information
+  op networkproc : Nat NetworkProcInfoSet -> Pred .
+  eq [nnp] : networkproc(N,(pi(network(N),L,L'),NPIS)) = tt .
+**** checks if a particular web application exists in a kernel-maintained set of webapp information
+  op webapp : Nat WebappProcInfoSet -> Pred .
+  eq [nwa] : webapp(N,(pi(webapp(N),L),WPIS)) = tt .
 endfm
 
 mod KERNEL is
@@ -662,7 +666,7 @@ mod KERNEL is
            mem-in(nolabel) , mem-out(nolabel) ,
 	   toKernel(mt)    , fromKernel(mt) >
            Cnf }
-  if no-networkproc-for-label(L,NPIS) .
+  if networkproc-for-label(L,NPIS) =/= tt .
 
 **** mirrored, for the reverse direction from network process to webapp:
 **** there is a connection, just forward the message
@@ -713,7 +717,7 @@ mod KERNEL is
            toKernel(ML) ,
            Att2 >
        Cnf }
-  if no-networkproc(N,NPIS) or no-webapp(N',WPIS) .
+  if networkproc(N,NPIS) andP webapp(N',WPIS) =/= tt .
 
 **** policy allows message from UI to change current webapp to webapp WI with MSG-SWITCH-TAB
   rl [kernelReceivesOPMessage-pa8] :
