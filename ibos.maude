@@ -56,32 +56,32 @@ endfm
 fmod NAT+ is
   pr NAT-NO-BUILTIN .
   op _~_ : Nat Nat -> Bool [comm] .
-  eq N:Nat ~ N:Nat           = true .
-  eq N:Nat ~ N:Nat + P:NzNat = false .
+  eq N:Nat ~ N:Nat           = true  [variant] .
+  eq N:Nat ~ N:Nat + P:NzNat = false [variant] .
 
   **** constants defined for convenience
   ops 2 3 4 5 6 7 8 9 10 11 12 13 14 15 80 81 256 500 1023 1024 1050 1056 : -> Nat .
-  eq 2    = 1 + 1 .
-  eq 3    = 1 + 1 + 1 .
-  eq 4    = 1 + 1 + 1 + 1 .
-  eq 5    = 1 + 1 + 1 + 1 + 1 .
-  eq 6    = 1 + 1 + 1 + 1 + 1 + 1 .
-  eq 7    = 1 + 1 + 1 + 1 + 1 + 1 + 1 .
-  eq 8    = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 .
-  eq 9    = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 .
-  eq 10   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 .
-  eq 11   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 .
-  eq 12   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 .
-  eq 13   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 .
-  eq 14   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 .
-  eq 15   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 .
+  eq 2    = 1 + 1 [variant] .
+  eq 3    = 1 + 1 + 1 [variant] .
+  eq 4    = 1 + 1 + 1 + 1 [variant] .
+  eq 5    = 1 + 1 + 1 + 1 + 1 [variant] .
+  eq 6    = 1 + 1 + 1 + 1 + 1 + 1 [variant] .
+  eq 7    = 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
+  eq 8    = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
+  eq 9    = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
+  eq 10   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
+  eq 11   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
+  eq 12   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
+  eq 13   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
+  eq 14   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
+  eq 15   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
   **** difference between non-consecutive numbers should be greater than 1
-  eq 80   = 15   + 1 + 1 + 1 .
-  eq 81   = 80   + 1 .
-  eq 256  = 81   + 1 + 1 + 1 .
-  eq 1023 = 256  + 1 + 1 + 1 .
-  eq 1024 = 1023 + 1 .
-  eq 1056 = 1024 + 1 + 1 + 1 + 1 .
+  eq 80   = 15   + 1 + 1 + 1 [variant] .
+  eq 81   = 80   + 1 [variant] .
+  eq 256  = 81   + 1 + 1 + 1 [variant] .
+  eq 1023 = 256  + 1 + 1 + 1 [variant] .
+  eq 1024 = 1023 + 1 [variant] .
+  eq 1056 = 1024 + 1 + 1 + 1 + 1 [variant] .
 endfm
 
 fmod PROC-ID is
@@ -129,48 +129,27 @@ fmod PROC-ID is
   vars N N'  : Nat .
 
   op _~_ : ProcessId ProcessId -> Bool [comm] .
-  eq PId ~ PId
-   = true .
-  eq KeId ~ WAId
-   = false .
-  eq KeId ~ NPId
-   = false .
-  eq KeId ~ UiId
-   = false .
-  eq KeId ~ DiId
-   = false .
-  eq webapp ~ webapp(N)
-   = false .
-  eq webapp(N) ~ webapp(N')
-   = N ~ N' .
-  eq WAId ~ NPId
-   = false .
-  eq WAId ~ UiId
-   = false .
-  eq WAId ~ DiId
-   = false .
-  eq network ~ network(N)
-   = false .
-  eq network(N) ~ network(N')
-   = N ~ N' .
-  eq NPId ~ UiId
-   = false .
-  eq NPId ~ DiId
-   = false .
-  eq UiId ~ DiId
-   = false .
-  eq WAMId ~ KeId
-   = false .
-  eq WAMId ~ WAId
-   = false .
-  eq WAMId ~ NPId
-   = false .
-  eq WAMId ~ DiId
-   = false .
-  eq WAMId ~ UiId
-   = false .
-  eq WAMId ~ NPId
-   = false .
+  eq PId ~ PId                = true   [variant] .
+  eq KeId ~ WAId              = false  [variant] .
+  eq KeId ~ NPId              = false  [variant] .
+  eq KeId ~ UiId              = false  [variant] .
+  eq KeId ~ DiId              = false  [variant] .
+  eq webapp ~ webapp(N)       = false  [variant] .
+  eq webapp(N) ~ webapp(N')   = N ~ N' [variant] .
+  eq WAId ~ NPId              = false  [variant] .
+  eq WAId ~ UiId              = false  [variant] .
+  eq WAId ~ DiId              = false  [variant] .
+  eq network ~ network(N)     = false  [variant] .
+  eq network(N) ~ network(N') = N ~ N' [variant] .
+  eq NPId ~ UiId              = false  [variant] .
+  eq NPId ~ DiId              = false  [variant] .
+  eq UiId ~ DiId              = false  [variant] .
+  eq WAMId ~ KeId             = false  [variant] .
+  eq WAMId ~ WAId             = false  [variant] .
+  eq WAMId ~ NPId             = false  [variant] .
+  eq WAMId ~ DiId             = false  [variant] .
+  eq WAMId ~ UiId             = false  [variant] .
+  eq WAMId ~ NPId             = false  [variant] .
 endfm
 
 fmod SYS is
@@ -207,12 +186,9 @@ fmod LABEL is pr NAT+ .
 
   **** Equality enrichment (added by Camilo)
   op _~_ : Label Label -> Bool [comm] .
-  eq L:Label ~ L:Label
-   = true .
-  eq about-blank ~ url(N:Nat)
-   = false .
-  eq url(N:Nat) ~ url(N':Nat)
-   = N:Nat ~ N':Nat .
+  eq L:Label ~ L:Label        = true           [variant] .
+  eq about-blank ~ url(N:Nat) = false          [variant] .
+  eq url(N:Nat) ~ url(N':Nat) = N:Nat ~ N':Nat [variant] .
 endfm
 
 fmod LABEL-LIST is pr LABEL .
@@ -446,15 +422,15 @@ fmod KERNEL-POLICIES is inc SYS . inc PRED . pr MSG . pr LABEL .
   var L L' : Label . var N : Nat . var NPIS : NetworkProcInfoSet . var WPIS : WebappProcInfoSet .
 **** auxiliary function for checking that a network process links to a given label
   op networkproc-for-label : Label NetworkProcInfoSet -> Pred .
-  eq [nnpl] : networkproc-for-label(L',(pi(network(N),L,L'),NPIS)) = tt .
+  eq [nnpl] : networkproc-for-label(L',(pi(network(N),L,L'),NPIS)) = tt [variant] .
 **** auxiliary functions for checking connections for network procs and
 **** webapps in the information sets that are defined in the kernel
 **** checks if a particular network process exists in a kernel-maintained set of network information
   op networkproc : Nat NetworkProcInfoSet -> Pred .
-  eq [nnp] : networkproc(N,(pi(network(N),L,L'),NPIS)) = tt .
+  eq [nnp] : networkproc(N,(pi(network(N),L,L'),NPIS)) = tt [variant] .
 **** checks if a particular web application exists in a kernel-maintained set of webapp information
   op webapp : Nat WebappProcInfoSet -> Pred .
-  eq [nwa] : webapp(N,(pi(webapp(N),L),WPIS)) = tt .
+  eq [nwa] : webapp(N,(pi(webapp(N),L),WPIS)) = tt [variant] .
 endfm
 
 mod KERNEL is
