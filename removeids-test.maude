@@ -1,0 +1,5 @@
+load ibos.maude
+load fm-a115.maude
+
+red removeIds(upModule('KERNEL,true),all) .
+quit
