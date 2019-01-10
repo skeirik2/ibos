@@ -41,10 +41,10 @@ endfm
 
 fmod NAT-NO-BUILTIN is
   pr NAT-CTOR-NO-BUILTIN .
-  op s     : Nat -> Nat .      **** operator is only used 6 times
+  op s     : Nat -> Nat .
   op _<_   : Nat Nat -> Bool .
   op _<=_  : Nat Nat -> Bool .
-  op _==_  : Nat Nat -> Bool . **** stub for real equality/disequality
+  op _==_  : Nat Nat -> Bool .
   op _=/=_ : Nat Nat -> Bool .
   eq s(N:Nat)                           = N:Nat + 1 [variant] .
   eq N:Nat           <  P:NzNat + N:Nat = true      [variant] .
@@ -159,17 +159,13 @@ fmod SYS is
   subsorts Object EmptyConfiguration < Configuration .
   subsorts Attribute EmptyAttributeSet < AttributeSet .
 
-  **** objects
   op <_|_> : ProcessId AttributeSet                -> Object             [ctor] .
-  **** attributes
   op _,_   : AttributeSet AttributeSet             -> AttributeSet       [ctor assoc comm id: none] .
   op _,_   : EmptyAttributeSet EmptyAttributeSet   -> EmptyAttributeSet  [ctor ditto] .
   op none  :                                       -> EmptyAttributeSet  [ctor] .
-  **** configuration
   op __    : Configuration Configuration           -> Configuration      [ctor assoc comm id: none] .
   op __    : EmptyConfiguration EmptyConfiguration -> EmptyConfiguration [ctor ditto] .
   op none  :                                       -> EmptyConfiguration [ctor] .
-  **** state
   op {_}   : Configuration                         -> State              [ctor] .
 endfm
 
@@ -225,13 +221,13 @@ fmod MSG-LIST is pr MSG .
 endfm
 
 fmod PIPEPROC is inc MSG-LIST . inc SYS .
-  *** channels for messages to and from the kernel
+  **** channels for messages to and from the kernel
   op fromKernel : MessageList -> Attribute [ctor] .
   op toKernel   : MessageList -> Attribute [ctor] .
 endfm
 
 fmod WEBAPPMGR is inc SYS .
-**** next web app number, i.e. unused process id number for a web app
+  **** next web app number, i.e. unused process id number for a web app
   op nextWAN : Nat -> Attribute [ctor] .
 endfm
 
@@ -251,12 +247,12 @@ fmod WEBAPP is
   inc WEBAPPMGR .
   inc LABEL .
   inc SYS .
-**** Webapps have data to be put on screen - we only refer to it by
-**** the label of the page where it is from.
+  **** Webapps have data to be put on screen - we only refer to it by
+  **** the label of the page where it is from.
   op rendered : Label -> Attribute [ctor] .
-**** This is where the webapp should load its data from!
+  **** This is where the webapp should load its data from!
   op URL : Label -> Attribute [ctor] .
-**** This notes whether it has already loaded, or has not yet started to do so.
+  **** This notes whether it has already loaded, or has not yet started to do so.
   op loading : Bool -> Attribute [ctor] .
 endfm
 
@@ -282,7 +278,7 @@ endfm
 ****
 **** Kernel now gives this to NIC - checking that target is what is
 **** allowed for this network process .
-***** That DMA rule is in the kernel
+**** That DMA rule is in the kernel
 **** The NIC can create a response for any message -
 **** order of returns is NOT guaranteed
 **** Extended to two rewrite rules to simulate the associativity
@@ -294,7 +290,7 @@ endfm
 ****
 **** Incoming ethernet frame in the NIC gets assigned to the
 **** appropriate network process by the kernel
-***** That DMA rule is in the kernel
+**** That DMA rule is in the kernel
 **** The network  process reads a return by NIC from memory  - did go
 **** through kernel in prior step
 **** Made into labeled topmost rule [proc-in]
@@ -322,119 +318,119 @@ fmod NIC is inc SYS . inc LABEL-SET . inc LABEL-LIST .
 endfm
 
 fmod KERNEL-POLICIES is inc SYS . inc PRED . pr MSG . pr LABEL .
-**** define how to build a single policy! then add them into the initial configuration
-**** Q: where to find the policies? A: ibos_source/dKernel/access.h
-**** ibos_source/dKernel/access.cc (line 195 and down; shows who can
-**** communicate to whom)
-****
-**** Q: for those things allowed  to communicate with each other, can
-**** ANYTHING  be sent  or  is  there further  control?  A: Only  the
-**** MsgType given in  that assignment can be sent!  These are all
-**** OP(browser)-related messages!
-****
-**** Policies are mostly browser-related, but can be on a lower level
-**** [i.e., syscall level], e.g., for networkProc -> hardware
-**** communication
+  **** define how to build a single policy! then add them into the initial configuration
+  **** Q: where to find the policies? A: ibos_source/dKernel/access.h
+  **** ibos_source/dKernel/access.cc (line 195 and down; shows who can
+  **** communicate to whom)
+  ****
+  **** Q: for those things allowed  to communicate with each other, can
+  **** ANYTHING  be sent  or  is  there further  control?  A: Only  the
+  **** MsgType given in  that assignment can be sent!  These are all
+  **** OP(browser)-related messages!
+  ****
+  **** Policies are mostly browser-related, but can be on a lower level
+  **** [i.e., syscall level], e.g., for networkProc -> hardware
+  **** communication
   sort Policy .
   sort PolicySet .
   subsort Policy < PolicySet .
   op mtPS :                     -> PolicySet [ctor] .
   op _,_  : PolicySet PolicySet -> PolicySet [ctor assoc comm id: mtPS] .
 
-  op msgPolicy        : PolicySet                     -> Attribute [ctor] .  **** make the policylist an attribute with this wrapper
+  op msgPolicy        : PolicySet             -> Attribute [ctor] .  **** make the policylist an attribute with this wrapper
   op policy           : PipeId PipeId MsgType -> Policy    [ctor] .  **** a policy is a sender Id, receiver Id and MsgType (only PipeProcs can communicate with kernel)
-  op nextNetworkProc  : Nat                           -> Attribute [ctor] .  **** the next available proc id for a network proc
-  op handledCurrently : Message                       -> Attribute [ctor] .  **** the message currently handled by the kernel
-**** webapp info stored by kernel
-**** label identifies the website this webapp is showing - this needs to match the
-**** first label of a network proc to allow communication
+  op nextNetworkProc  : Nat                   -> Attribute [ctor] .  **** the next available proc id for a network proc
+  op handledCurrently : Message               -> Attribute [ctor] .  **** the message currently handled by the kernel
+  **** webapp info stored by kernel
+  **** label identifies the website this webapp is showing - this needs to match the
+  **** first label of a network proc to allow communication
   sorts WebappProcInfo WebappProcInfoSet .
   subsorts WebappProcInfo < WebappProcInfoSet .
   op pi        : WebAppId Label                      -> WebappProcInfo    [ctor] .
   op mtWPIS    :                                     -> WebappProcInfoSet [ctor] .
   op _,_       : WebappProcInfoSet WebappProcInfoSet -> WebappProcInfoSet [ctor assoc comm id: mtWPIS] .
   op weblabels : WebappProcInfoSet                   -> Attribute         [ctor] .
-****network proc info stored by kernel
-**** first label to identify related webapps, second label for whom
-**** this network proc can communicate with (via actual ethernet; to outside world)
+  ****network proc info stored by kernel
+  **** first label to identify related webapps, second label for whom
+  **** this network proc can communicate with (via actual ethernet; to outside world)
   sorts NetworkProcInfo NetworkProcInfoSet .
   subsorts NetworkProcInfo < NetworkProcInfoSet .
   op pi            : NetProcId Label Label                 -> NetworkProcInfo    [ctor] .
   op mtNPIS        :                                       -> NetworkProcInfoSet [ctor] .
   op _,_           : NetworkProcInfoSet NetworkProcInfoSet -> NetworkProcInfoSet [ctor assoc comm id: mtNPIS] .
   op networklabels : NetworkProcInfoSet                    -> Attribute          [ctor] .
-**** These next two rules are what was promised above in the network
-**** process module above when referring to DMA rules.
-**** Kernel gives network process DMA to NIC - checking that target is
-**** what is allowed for this network process .
-**** Made into a labeled topmost conditional rule [mem-out]
-**** in module KERNEL
-****
-**** Incoming ethernet frame in the NIC gets assigned to the
-**** appropriate network process DMA by the kernel
-**** Made into a labeled topmost conditional rule [mem-in]
-**** in module KERNEL
-****
-**** Receiving an OP message sets the sender ProcessId correctly. This
-**** also subjects the message to policy checking.
-****
-**** Made into a topmost rule in module KERNEL
-****
-**** Once the policy has been checked and any further processing has
-**** been dealt with, OP messages are forwarded.
-****
-**** Made into a topmost rule in module KERNEL
-****
+  **** These next two rules are what was promised above in the network
+  **** process module above when referring to DMA rules.
+  **** Kernel gives network process DMA to NIC - checking that target is
+  **** what is allowed for this network process .
+  **** Made into a labeled topmost conditional rule [mem-out]
+  **** in module KERNEL
+  ****
+  **** Incoming ethernet frame in the NIC gets assigned to the
+  **** appropriate network process DMA by the kernel
+  **** Made into a labeled topmost conditional rule [mem-in]
+  **** in module KERNEL
+  ****
+  **** Receiving an OP message sets the sender ProcessId correctly. This
+  **** also subjects the message to policy checking.
+  ****
+  **** Made into a topmost rule in module KERNEL
+  ****
+  **** Once the policy has been checked and any further processing has
+  **** been dealt with, OP messages are forwarded.
+  ****
+  **** Made into a topmost rule in module KERNEL
+  ****
   op displayedTopBar  : Label      -> Attribute [ctor] . **** kernel-owned address bar - part of the 'secure' UI
   op activeWebapp     : WebAppId   -> Attribute [ctor] . **** display memory modeled as an object.
   op displayedContent : Label      -> Attribute [ctor] . **** label of the things being displayed as an attribute of that object
-****
+  ****
   op kernelDo         : Message -> Message   [ctor] . **** Kernel needs to do something
-**** Once the policy has been checked, further processing is taken care of;
-**** switching the active tab in the UI is done here.
-**** The kernel will change topbar, change memory access
-**** for display - zero display memory first - let new owner refresh
-**** display
-****
-**** Made into a topmost rule in module KERNEL
-****
-**** Allow the active webapp to change the display whenever it wants to do so.
-**** ONLY the active webapp can make changes to the display!
-**** Note that this is the more abstract version, for the concrete and buggy one, see the memory.maude file.
-**** Made into a tomost rule that uses equality enrichment in the condition
-**** in module KERNEL
-****
-**** Creating a NEW webapp:
-**** Once the policy has been checked, further processing is taken care of;
-**** this switches the active webapp to the newly created webapp for this URL
-**** The kernel will change topbar, change memory access
-**** for display - zero display memory first - let new owner refresh
-**** display later
-**** Q: How does the UI signal if the user types a new URL into the
-**** address bar for a fresh webapp; and what about an existing
-**** webapp [say that webapp is at URL A and the user types a URL B]
-**** A: new webapp! label NEVER changes - so new webapp is needed!
-****
-**** check whether there is a policy in the policyset that allows the
-**** message to be sent - initial policy set defined in RUN
-**** Transformed into labeled conditional rules in module KERNEL
-****
+  **** Once the policy has been checked, further processing is taken care of;
+  **** switching the active tab in the UI is done here.
+  **** The kernel will change topbar, change memory access
+  **** for display - zero display memory first - let new owner refresh
+  **** display
+  ****
+  **** Made into a topmost rule in module KERNEL
+  ****
+  **** Allow the active webapp to change the display whenever it wants to do so.
+  **** ONLY the active webapp can make changes to the display!
+  **** Note that this is the more abstract version, for the concrete and buggy one, see the memory.maude file.
+  **** Made into a tomost rule that uses equality enrichment in the condition
+  **** in module KERNEL
+  ****
+  **** Creating a NEW webapp:
+  **** Once the policy has been checked, further processing is taken care of;
+  **** this switches the active webapp to the newly created webapp for this URL
+  **** The kernel will change topbar, change memory access
+  **** for display - zero display memory first - let new owner refresh
+  **** display later
+  **** Q: How does the UI signal if the user types a new URL into the
+  **** address bar for a fresh webapp; and what about an existing
+  **** webapp [say that webapp is at URL A and the user types a URL B]
+  **** A: new webapp! label NEVER changes - so new webapp is needed!
+  ****
+  **** check whether there is a policy in the policyset that allows the
+  **** message to be sent - initial policy set defined in RUN
+  **** Transformed into labeled conditional rules in module KERNEL
+  ****
   var L L' : Label . var N : Nat . var NPIS : NetworkProcInfoSet . var WPIS : WebappProcInfoSet .
-**** auxiliary function for checking that a network process links to a given label
+  **** auxiliary function for checking that a network process links to a given label
   op networkproc-for-label : Label NetworkProcInfoSet -> Pred .
   eq [nnpl] : networkproc-for-label(L',(pi(network(N),L,L'),NPIS)) = tt [variant] .
-**** auxiliary functions for checking connections for network procs and
-**** webapps in the information sets that are defined in the kernel
-**** checks if a particular network process exists in a kernel-maintained set of network information
+  **** auxiliary functions for checking connections for network procs and
+  **** webapps in the information sets that are defined in the kernel
+  **** checks if a particular network process exists in a kernel-maintained set of network information
   op networkproc : Nat NetworkProcInfoSet -> Pred .
   eq [nnp] : networkproc(N,(pi(network(N),L,L'),NPIS)) = tt [variant] .
-**** checks if a particular web application exists in a kernel-maintained set of webapp information
+  **** checks if a particular web application exists in a kernel-maintained set of webapp information
   op webapp : Nat WebappProcInfoSet -> Pred .
   eq [nwa] : webapp(N,(pi(webapp(N),L),WPIS)) = tt [variant] .
 endfm
 
 mod KERNEL is
-**** A lot of the 'kernel' things are found above in 'KERNEL-POLICIES' instead
+  **** A lot of the 'kernel' things are found above in 'KERNEL-POLICIES' instead
   inc KERNEL-POLICIES .
   inc MSG-LIST        .
   inc LABEL-LIST      .
@@ -448,7 +444,7 @@ mod KERNEL is
   var Att3        : AttributeSet .
   var Cnf         : Configuration .
   var L L' L''    : Label .
-  var L1 L2 L3     : Label .
+  var L1 L2 L3    : Label .
   var LL LL' LL2  : LabelList .
   var LS          : LabelSet .
   var ML ML'      : MessageList .
@@ -473,35 +469,35 @@ mod KERNEL is
   var NNPI1 NNPI2 : NonNetPipeId .
   var NWPI1 NWPI2 : NonWebPipeId .
 
-**** Page Fault and other invalid messages need not be modeled, as
-**** they are simply dropped in the actual source code, and in the
-**** model they will never be generated.
+  **** Page Fault and other invalid messages need not be modeled, as
+  **** they are simply dropped in the actual source code, and in the
+  **** model they will never be generated.
 
-**** Made into a topmost labeled conditional rule from module WEBAPP
+  **** Made into a topmost labeled conditional rule from module WEBAPP
   rl [fetch] :
      { < WI | rendered(L) ,  URL(L') , loading(false) , toKernel(ML) ,                                    Att > Cnf }
   => { < WI | rendered(L) ,  URL(L') , loading(true)  , toKernel(ML ; msg(WI,network,MSG-FETCH-URL,L')) , Att > Cnf } .
 
-**** Made into a labeled topmost conditional rule from module WEBAPP
+  **** Made into a labeled topmost conditional rule from module WEBAPP
   rl [render] :
      { < WI | rendered(L)  , URL(L') , loading(true) , fromKernel(msg(PI, WI, MSG-RETURN-URL,L2) ; ML) , Att > Cnf }
   => { < WI | rendered(L2) , URL(L') , loading(true) , fromKernel(ML) ,                                  Att > Cnf } .
 
-**** Made into a topmost rule from module NETWORK
-**** kernel tells network process to fetch data for a webapp
-**** TODO: check that returnTo does the right thing (it seems like returnTo should be stored per URL to fetch)
+  **** Made into a topmost rule from module NETWORK
+  **** kernel tells network process to fetch data for a webapp
+  **** TODO: check that returnTo does the right thing (it seems like returnTo should be stored per URL to fetch)
   rl [request-from-webapp] :
      { < NI | returnTo(PI),  out(LL),     fromKernel(msg(PI', NI, MSG-FETCH-URL, L) ; ML'), Att > Cnf }
   => { < NI | returnTo(PI'), out(LL ; L), fromKernel(ML') ,                                 Att > Cnf } .
 
-**** Made into a labeled topmost rule from module NETWORK
-**** network process moves data from its DMA response buffer into its input buffer
+  **** Made into a labeled topmost rule from module NETWORK
+  **** network process moves data from its DMA response buffer into its input buffer
   rl [proc-in] :
      { < NI | in(LL),       mem-in(L)       , Att > Cnf }
   => { < NI | in(LL ; L) ,  mem-in(nolabel) , Att > Cnf } .
 
-**** Made into a topmost rule from module NETWORK
-**** network process moves data from its output buffer into its DMA request buffer
+  **** Made into a topmost rule from module NETWORK
+  **** network process moves data from its output buffer into its DMA request buffer
   rl [proc-out] :
      { < NI | out(L ; LL), mem-out(nolabel) , Att > Cnf }
   => { < NI | out(LL)    , mem-out(L)       , Att > Cnf } .
@@ -510,14 +506,14 @@ mod KERNEL is
      { < nic | nic-out(L & LS) , in(LL')     , Att > Cnf }
   => { < nic | nic-out(LS)     , in(LL' ; L) , Att > Cnf } .
 
-**** Made into a topmost rule from module NETWORK
-**** network process hands data back to other process (in this case: webapp)
+  **** Made into a topmost rule from module NETWORK
+  **** network process hands data back to other process (in this case: webapp)
   rl [msg-to-kernel] :
      { < NI | returnTo(PI) , in(L ; LL), toKernel(ML) ,                                  Att > Cnf }
   => { < NI | returnTo(PI) , in(LL)    , toKernel(ML ; msg(NI, PI, MSG-RETURN-URL, L)) , Att > Cnf } .
 
-**** Made into a topmost rule from module KERNEL-POLICIES
-**** kernel moves dma request from dma request buffer to NIC
+  **** Made into a topmost rule from module KERNEL-POLICIES
+  **** kernel moves dma request from dma request buffer to NIC
   rl [mem-out] :
      { < NI     | mem-out(L') ,                        Att  >
        < kernel | networklabels(pi(NI, L, L'), NPIS) , Att2 >
@@ -526,8 +522,8 @@ mod KERNEL is
        < kernel | networklabels(pi(NI, L, L'), NPIS) , Att2 >
        < nic    | nic-out(L' & LS) ,                   Att3 > Cnf } .
 
-**** Made into a topmost rule from module KERNEL-POLICIES
-**** kernel moves dma response from NIC to dma response buffer
+  **** Made into a topmost rule from module KERNEL-POLICIES
+  **** kernel moves dma response from NIC to dma response buffer
   rl [mem-in] :
      { < NI     | mem-in(nolabel) ,                    Att  >
        < kernel | networklabels(pi(NI, L, L'), NPIS) , Att2 >
@@ -536,8 +532,8 @@ mod KERNEL is
        < kernel | networklabels(pi(NI, L, L'), NPIS) , Att2 >
        < nic    | in(LL) ,                             Att3 > Cnf } .
 
-**** the following [kernelReceviesOPMessage] rules all have a kernel object and a pipe
-**** policy allows message from PPI1 to PPI2 with MsgType
+  **** the following [kernelReceviesOPMessage] rules all have a kernel object and a pipe
+  **** policy allows message from PPI1 to PPI2 with MsgType
   rl [kernelReceivesOPMessage-pa1] :
      { < kernel | handledCurrently(none), msgPolicy(policy(PPI1,PPI2,MT),MP), Att  >
        < PPI1   | toKernel(msg(ORG,PPI2,MT,L) ; ML),                          Att2 > Cnf }
@@ -545,7 +541,7 @@ mod KERNEL is
      { < kernel | handledCurrently(msg(PPI1, PPI2, MT, L)), msgPolicy(policy(PPI1,PPI2,MT),MP), Att  >
        < PPI1   | toKernel(ML) ,                                                                Att2 > Cnf } .
 
-**** policy allows message from webapp to NNPI2 (not network proc) with MT
+  **** policy allows message from webapp to NNPI2 (not network proc) with MT
   rl [kernelReceivesOPMessage-pa2] :
      { < kernel | handledCurrently(none), msgPolicy(policy(webapp,NNPI2,MT),MP), Att  >
        < WI     | toKernel(msg(ORG, NNPI2, MT, L) ; ML),                         Att2 > Cnf }
@@ -553,7 +549,7 @@ mod KERNEL is
      { < kernel | handledCurrently(msg(WI, NNPI2, MT, L)), msgPolicy(policy(webapp,NNPI2,MT),MP), Att  >
        < WI     | toKernel(ML) ,                                                                  Att2 > Cnf } .
 
-**** policy allows message from NNPI1 (not network proc) to webapp with MT
+  **** policy allows message from NNPI1 (not network proc) to webapp with MT
   rl [kernelReceivesOPMessage-pa3] :
      { < kernel | handledCurrently(none), msgPolicy(policy(NNPI1,webapp,MT),MP), Att  >
        < NNPI1  | toKernel(msg(ORG, WI, MT, L) ; ML),                            Att2 > Cnf }
@@ -561,7 +557,7 @@ mod KERNEL is
      { < kernel | handledCurrently(msg(NNPI1, WI, MT, L)), msgPolicy(policy(NNPI1,webapp,MT),MP), Att  >
        < NNPI1  | toKernel(ML) ,                                                                  Att2 > Cnf } .
 
-**** policy allows message from network proc to NWPI2 (not webapp) with MT
+  **** policy allows message from network proc to NWPI2 (not webapp) with MT
   rl [kernelReceivesOPMessage-pa4] :
      { < kernel | handledCurrently(none), msgPolicy(policy(network,NWPI2,MT),MP), Att  >
        < NI     | toKernel(msg(ORG, NWPI2, MT, L) ; ML),                          Att2 > Cnf }
@@ -569,7 +565,7 @@ mod KERNEL is
      { < kernel | handledCurrently(msg(NI, NWPI2, MT, L)), msgPolicy(policy(network,NWPI2,MT),MP), Att  >
        < NI     | toKernel(ML),                                                                    Att2 > Cnf } .
 
-**** policy allows message from NWPI1 (not webapp) to network proc with MT
+  **** policy allows message from NWPI1 (not webapp) to network proc with MT
   rl [kernelReceivesOPMessage-pa5] :
      { < kernel | handledCurrently(none), msgPolicy(policy(NWPI1,network,MT),MP), Att  >
        < NWPI1  | toKernel(msg(ORG, NI, MT, L) ; ML),                             Att2 > Cnf }
@@ -577,25 +573,25 @@ mod KERNEL is
      { < kernel | handledCurrently(msg(NWPI1, NI, MT, L)), msgPolicy(policy(NWPI1,network,MT),MP), Att  >
        < NWPI1  | toKernel(ML) ,                                                                   Att2 > Cnf } .
 
-**** policy allows message from webapp to network proc, but requires
-**** further checking of them being connected based on the label -
-**** that further check will deduce the actual target process and may
-**** start a new one if necessary
+  **** policy allows message from webapp to network proc, but requires
+  **** further checking of them being connected based on the label -
+  **** that further check will deduce the actual target process and may
+  **** start a new one if necessary
 
-**** a webapp sends a message to a network process
-**** webapp  WI is labelled with L, sending message ORG -> NI with label L'
-**** netproc NI source is labelled with L, target is labelled with L'
-**** resulting message is WI -> NI with label L'
+  **** a webapp sends a message to a network process
+  **** webapp  WI is labelled with L, sending message ORG -> NI with label L'
+  **** netproc NI source is labelled with L, target is labelled with L'
+  **** resulting message is WI -> NI with label L'
   rl [kernelReceivesOPMessage-pa6-cc2a] :
      { < kernel |
            handledCurrently(none),
-	   msgPolicy(policy(webapp,network,MT),MP),
+           msgPolicy(policy(webapp,network,MT),MP),
            weblabels(pi(WI,L),WPIS),
            networklabels(pi(NI',L,L'),NPIS),
            Att >
        < WI     |
            toKernel(msg(ORG, NI, MT, L') ; ML),
-	   Att2 >
+           Att2 >
        Cnf }
   =>
      { < kernel |
@@ -609,10 +605,10 @@ mod KERNEL is
            Att2 >
        Cnf } .
 
-**** If no appropriate network process can be found in the above
-**** rule, start a new network proc - this assumes that there will
-**** be no more than 772 network procs started, to prevent that, we
-**** would need to check "Num'' < 1024" :
+  **** If no appropriate network process can be found in the above
+  **** rule, start a new network proc - this assumes that there will
+  **** be no more than 772 network procs started, to prevent that, we
+  **** would need to check "Num'' < 1024" :
  crl [kernelReceivesOPMessage-pa6-cc2b] :
      { < kernel |
            handledCurrently(none),
@@ -623,7 +619,7 @@ mod KERNEL is
            Att >
        < WI     |
            toKernel(msg(ORG, NI, MT, L') ; ML),
-	   Att2 >
+           Att2 >
        Cnf }
   =>
      { < kernel |
@@ -638,15 +634,15 @@ mod KERNEL is
            Att2 >
        < network(N) |
            returnTo(WI),
-	   in(mtLL)        , out(mtLL) ,
+           in(mtLL)        , out(mtLL) ,
            mem-in(nolabel) , mem-out(nolabel) ,
-	   toKernel(mt)    , fromKernel(mt) >
+           toKernel(mt)    , fromKernel(mt) >
            Cnf }
   if networkproc-for-label(L,NPIS) =/= tt .
 
-**** mirrored, for the reverse direction from network process to webapp:
-**** there is a connection, just forward the message
-**** network proc answering to webapp, thus having the correct recipient:
+  **** mirrored, for the reverse direction from network process to webapp:
+  **** there is a connection, just forward the message
+  **** network proc answering to webapp, thus having the correct recipient:
   rl [kernelReceivesOPMessage-pa7-cc1a] :
      { < kernel |
            handledCurrently(none),
@@ -656,7 +652,7 @@ mod KERNEL is
            Att >
        < NI     |
            toKernel(msg(ORG, WI, MT, L'') ; ML),
-	   Att2 >
+           Att2 >
        Cnf }
   =>
      { < kernel |
@@ -670,7 +666,7 @@ mod KERNEL is
            Att2 >
        Cnf } .
 
-**** there is no connection, then drop the message
+  **** there is no connection, then drop the message
  crl [kernelReceivesOPMessage-pa7-cc1b] :
      { < kernel     |
            handledCurrently(none),
@@ -680,7 +676,7 @@ mod KERNEL is
            Att >
        < network(N) |
            toKernel(msg(ORG, webapp(N'), MT, L'') ; ML),
-	   Att2 > Cnf }
+           Att2 > Cnf }
   =>
      { < kernel |
            --- handledCurrently(msg(network(N), webapp(N'), MT, L'')),
@@ -695,7 +691,7 @@ mod KERNEL is
        Cnf }
   if networkproc(N,NPIS) andP webapp(N',WPIS) =/= tt .
 
-**** policy allows message from UI to change current webapp to webapp WI with MSG-SWITCH-TAB
+  **** policy allows message from UI to change current webapp to webapp WI with MSG-SWITCH-TAB
   rl [kernelReceivesOPMessage-pa8] :
      { < kernel |
            handledCurrently(none),
@@ -708,14 +704,14 @@ mod KERNEL is
   =>
      { < kernel |
            handledCurrently(kernelDo(msg(ui,WI,MSG-SWITCH-TAB,L))),
-	   msgPolicy(policy(ui,webapp,MSG-SWITCH-TAB),MP),
+           msgPolicy(policy(ui,webapp,MSG-SWITCH-TAB),MP),
            Att >
        < ui     |
            toKernel(ML),
            Att2 >
        Cnf } .
 
-**** policy allows message from UI to change current webapp to a new webapp loading URL with MSG-NEW-URL
+  **** policy allows message from UI to change current webapp to a new webapp loading URL with MSG-NEW-URL
   rl [kernelReceivesOPMessage-pa9] :
      { < kernel | handledCurrently(none), msgPolicy(policy(ui,webapp,MSG-NEW-URL),MP), Att  >
        < ui     | toKernel(msg(ORG,webapp, MSG-NEW-URL, L) ; ML),                      Att2 >
@@ -730,7 +726,7 @@ mod KERNEL is
            Att2 >
        Cnf } .
 
-**** no policy allowed this, therefore implicitly disallowed and dropped
+  **** no policy allowed this, therefore implicitly disallowed and dropped
   rl [kernelReceivesOPMessage-pa10] :
      { < kernel | handledCurrently(none), msgPolicy(MP), Att  >
        < PPI    | toKernel(msg(ORG, PPI', MT, L) ; ML),  Att2 > Cnf }
@@ -738,7 +734,7 @@ mod KERNEL is
      { < kernel | handledCurrently(none), msgPolicy(MP), Att  >
        < PPI    | toKernel(ML),                          Att2 > Cnf } .
 
-**** Made into a topmost rule from module KERNEL-POLICIES
+  **** Made into a topmost rule from module KERNEL-POLICIES
  rl [kernelForwardsOPMessage] :
      { < kernel | handledCurrently(msg(ORG, PPI', MT, L)) , Att  >
        < PPI'   | fromKernel(ML) ,                          Att2 > Cnf }
@@ -746,7 +742,7 @@ mod KERNEL is
      { < kernel | handledCurrently(none),                  Att  >
        < PPI'   | fromKernel(ML ; msg(ORG, PPI', MT, L)) , Att2 > Cnf } .
 
-**** Made into a topmost rule from module KERNEL-POLICIES
+  **** Made into a topmost rule from module KERNEL-POLICIES
   rl [tab-change] :
      { < kernel  |
            handledCurrently(kernelDo(msg(ui, WI', MSG-SWITCH-TAB, L1))) ,
@@ -770,14 +766,14 @@ mod KERNEL is
            Att2 >
        Cnf } .
 
-**** Made into a tomost rule that uses equality enrichment in the condition
-**** from module KERNEL-POLICIES
-**** Q. what could be wrong with this since the number of solutions
-**** in one of the experiments change (Camilo) See equational enrichment
-**** for labels.
-**** A. there was another constructor for label in the specification;
-**** such a definition was moved to module LABEL and the equality
-**** enrichment defined accordingly
+  **** Made into a tomost rule that uses equality enrichment in the condition
+  **** from module KERNEL-POLICIES
+  **** Q. what could be wrong with this since the number of solutions
+  **** in one of the experiments change (Camilo) See equational enrichment
+  **** for labels.
+  **** A. there was another constructor for label in the specification;
+  **** such a definition was moved to module LABEL and the equality
+  **** enrichment defined accordingly
  crl [change-display] :
      { < display | activeWebapp(WI), displayedContent(L),  Att2 >
        < WI      | rendered(L'),                           Att3 > Cnf }
@@ -785,7 +781,7 @@ mod KERNEL is
        < WI      | rendered(L'),                           Att3 > Cnf }
    if L =/= L' .
 
-**** Made into a topmost rule from module KERNEL-POLICIES
+  **** Made into a topmost rule from module KERNEL-POLICIES
  crl [new-url] :
      { < kernel    |
            handledCurrently(kernelDo(msg(ui, webapp, MSG-NEW-URL, URL))) ,
