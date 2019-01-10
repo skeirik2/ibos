@@ -16,19 +16,6 @@ fmod BOOL-NO-BUILTIN is
   eq not false   = true  [variant] .
 endfm
 
-fmod PRED is pr BOOL-NO-BUILTIN .
-  sort Pred .
-  op tt : -> Pred [ctor] .
-  op _=/=_  : Pred Pred -> Bool .
-  op _andP_ : Pred Pred -> Pred .
-  var P : Pred .
-  eq tt andP tt = tt [variant] .
-  --- op _orP_  : Pred Pred -> Pred .
-  --- eq tt orP  P  = tt [variant] .
-  --- eq P  orP  tt = tt [variant] .
-endfm
-
-
 fmod NAT-CTOR-NO-BUILTIN is
   pr BOOL-NO-BUILTIN .
   sorts Nat NzNat .
