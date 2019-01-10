@@ -45,30 +45,6 @@ fmod NAT+ is
   op _~_ : Nat Nat -> Bool [comm] .
   eq N:Nat ~ N:Nat           = true  [variant] .
   eq N:Nat ~ N:Nat + P:NzNat = false [variant] .
-
-  **** constants defined for convenience
-  ops 2 3 4 5 6 7 8 9 10 11 12 13 14 15 80 81 256 500 1023 1024 1050 1056 : -> Nat .
-  eq 2    = 1 + 1 [variant] .
-  eq 3    = 1 + 1 + 1 [variant] .
-  eq 4    = 1 + 1 + 1 + 1 [variant] .
-  eq 5    = 1 + 1 + 1 + 1 + 1 [variant] .
-  eq 6    = 1 + 1 + 1 + 1 + 1 + 1 [variant] .
-  eq 7    = 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
-  eq 8    = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
-  eq 9    = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
-  eq 10   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
-  eq 11   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
-  eq 12   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
-  eq 13   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
-  eq 14   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
-  eq 15   = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 [variant] .
-  **** difference between non-consecutive numbers should be greater than 1
-  eq 80   = 15   + 1 + 1 + 1 [variant] .
-  eq 81   = 80   + 1 [variant] .
-  eq 256  = 81   + 1 + 1 + 1 [variant] .
-  eq 1023 = 256  + 1 + 1 + 1 [variant] .
-  eq 1024 = 1023 + 1 [variant] .
-  eq 1056 = 1024 + 1 + 1 + 1 + 1 [variant] .
 endfm
 
 fmod PROC-ID is
