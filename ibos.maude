@@ -33,22 +33,19 @@ fmod NAT-NO-BUILTIN is
   op _<=_  : Nat Nat -> Bool .
   op _==_  : Nat Nat -> Bool .
   op _=/=_ : Nat Nat -> Bool .
-  eq s(N:Nat)                           = N:Nat + 1 [variant] .
-  eq N:Nat           <  P:NzNat + N:Nat = true      [variant] .
-  eq N:Nat + M:Nat   <  N:Nat           = false     [variant] .
-  eq P:NzNat + N:Nat <= N:Nat           = false     [variant] .
-  eq N:Nat           <= N:Nat + M:Nat   = true      [variant] .
-endfm
-
-fmod NAT+ is
-  pr NAT-NO-BUILTIN .
-  op _~_ : Nat Nat -> Bool [comm] .
-  eq N:Nat ~ N:Nat           = true  [variant] .
-  eq N:Nat ~ N:Nat + P:NzNat = false [variant] .
+  op _~_   : Nat Nat -> Bool [comm] .
+  var N M : Nat . var P : NzNat .
+  eq s(N)           = N + 1 [variant] .
+  eq N     <  P + N = true  [variant] .
+  eq N + M <  N     = false [variant] .
+  eq P + N <= N     = false [variant] .
+  eq N     <= N + M = true  [variant] .
+  eq N     ~  N     = true  [variant] .
+  eq N     ~  N + P = false [variant] .
 endfm
 
 fmod PROC-ID is
-  pr NAT+ .
+  pr NAT-NO-BUILTIN .
 
   sort ProcessId       .  **** general sort of process identifiers
   sort NonNetProcId    .  **** processes which cannot act like a network
@@ -137,7 +134,7 @@ fmod SYS is
   op {_}   : Configuration                         -> State              [ctor] .
 endfm
 
-fmod LABEL is pr NAT+ .
+fmod LABEL is pr NAT-NO-BUILTIN .
   sorts Label MaybeLabel .
   subsorts Label < MaybeLabel .
   op about-blank :     -> Label      [ctor] .
