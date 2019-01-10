@@ -104,8 +104,8 @@ fmod PROC-ID is
 
   subsorts KernelId WebAppId NetProcId UIId DisplayId NICId WebAppMgrId < ProcessId .
   subsorts UIId NetProcId WebAppId < PipeId < ProcessId .
-  subsorts KernelId DisplayId NICId UIId WebAppId < NonNetProcId < ProcessId .
-  subsorts KernelId DisplayId NICId UIId NetProcId < NonWebAppId < ProcessId .
+  subsorts KernelId DisplayId NICId UIId WebAppId WebAppMgrId < NonNetProcId < ProcessId .
+  subsorts KernelId DisplayId NICId UIId NetProcId WebAppMgrId < NonWebAppId < ProcessId .
   subsorts UIId WebAppId < NonNetPipeId < NonNetProcId PipeId < ProcessId .
   subsorts UIId NetProcId < NonWebPipeId < NonWebAppId PipeId < ProcessId .
 
