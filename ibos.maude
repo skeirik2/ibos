@@ -796,4 +796,15 @@ mod KERNEL is
            toKernel(mt) > Cnf } .
 endm
 
+mod IBOS is
+  pr KERNEL .
+endm
+
+mod IBOS-STOP is
+  pr IBOS .
+  var C : Configuration .
+  op [_] : Configuration -> State [ctor] .
+  rl [stop] : { C } => [ C ] .
+endm
+
 eof
