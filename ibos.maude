@@ -319,7 +319,7 @@ fmod NIC is inc SYS . inc LABEL-SET . inc LABEL-LIST .
   op nic-in  : LabelList -> Attribute [ctor] .
 endfm
 
-fmod KERNEL-POLICIES is inc SYS . inc PRED . pr MSG . pr LABEL .
+fmod KERNEL-POLICIES is inc SYS . inc BOOL-NO-BUILTIN . pr MSG . pr LABEL .
   **** define how to build a single policy! then add them into the initial configuration
   **** Q: where to find the policies? A: ibos_source/dKernel/access.h
   **** ibos_source/dKernel/access.cc (line 195 and down; shows who can
@@ -417,18 +417,27 @@ fmod KERNEL-POLICIES is inc SYS . inc PRED . pr MSG . pr LABEL .
   **** message to be sent - initial policy set defined in RUN
   **** Transformed into labeled conditional rules in module KERNEL
   ****
-  var L L' : Label . var N : Nat . var NPIS : NetworkProcInfoSet . var WPIS : WebappProcInfoSet .
+  var L L' L'' : Label . var N N' : Nat .
+  var NI NI' : NetProcId . var WI WI' : WebAppId .
+  var NPIS : NetworkProcInfoSet . var WPIS : WebappProcInfoSet .
+
   **** auxiliary function for checking that a network process links to a given label
-  op networkproc-for-label : Label NetworkProcInfoSet -> Pred .
-  eq [nnpl] : networkproc-for-label(L',(pi(network(N),L,L'),NPIS)) = tt [variant] .
+  op networkproc-for-label : Label NetworkProcInfoSet -> Bool .
+  eq [nnpl] : networkproc-for-label(L',(pi(network(N),L,L'),NPIS)) = true [variant] .
+ ceq [nnpl2] : networkproc-for-label(L',(pi(network(N),L,L''),NPIS)) = networkproc-for-label(L',NPIS) if L' ~ L'' = false .
+  eq [nnplf] : networkproc-for-label(L',mtNPIS) = false .
   **** auxiliary functions for checking connections for network procs and
   **** webapps in the information sets that are defined in the kernel
   **** checks if a particular network process exists in a kernel-maintained set of network information
-  op networkproc : Nat NetworkProcInfoSet -> Pred .
-  eq [nnp] : networkproc(N,(pi(network(N),L,L'),NPIS)) = tt [variant] .
+  op networkproc : Nat NetworkProcInfoSet -> Bool .
+  eq [nnp] : networkproc(N,(pi(network(N),L,L'),NPIS)) = true [variant] .
+ ceq [nnp2] : networkproc(N,(pi(network(N'),L,L'),NPIS)) = networkproc(N,NPIS) if N ~ N' = false .
+  eq [nnpf] : networkproc(N,mtNPIS) = false .
   **** checks if a particular web application exists in a kernel-maintained set of webapp information
-  op webapp : Nat WebappProcInfoSet -> Pred .
-  eq [nwa] : webapp(N,(pi(webapp(N),L),WPIS)) = tt [variant] .
+  op webapp : Nat WebappProcInfoSet -> Bool .
+  eq [nwa] : webapp(N,(pi(webapp(N),L),WPIS)) = true [variant] .
+ ceq [nwa2] : webapp(N,(pi(webapp(N'),L),WPIS)) = webapp(N,WPIS) if N ~ N' = false .
+  eq [nwaf] : webapp(N,mtWPIS) = false .
 endfm
 
 mod KERNEL is
@@ -640,7 +649,7 @@ mod KERNEL is
            mem-in(nolabel) , mem-out(nolabel) ,
            toKernel(mt)    , fromKernel(mt) >
            Cnf }
-  if networkproc-for-label(L,NPIS) =/= tt .
+  if networkproc-for-label(L,NPIS) = false .
 
   **** mirrored, for the reverse direction from network process to webapp:
   **** there is a connection, just forward the message
@@ -691,7 +700,7 @@ mod KERNEL is
            toKernel(ML) ,
            Att2 >
        Cnf }
-  if networkproc(N,NPIS) andP webapp(N',WPIS) =/= tt .
+  if networkproc(N,NPIS) and webapp(N',WPIS) = false .
 
   **** policy allows message from UI to change current webapp to webapp WI with MSG-SWITCH-TAB
   rl [kernelReceivesOPMessage-pa8] :
