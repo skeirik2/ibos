@@ -285,7 +285,18 @@ fmod NIC is inc SYS . inc LABEL-SET . inc LABEL-LIST .
   op nic-in  : LabelList -> Attribute [ctor] .
 endfm
 
-fmod KERNEL-POLICIES is inc SYS . inc BOOL-NO-BUILTIN . pr MSG . pr LABEL .
+fmod KERNEL-POLICIES is
+  inc SYS             .
+  inc BOOL-NO-BUILTIN .
+  inc MSG             .
+  inc LABEL           .
+  inc MSG-LIST        .
+  inc LABEL-LIST      .
+  inc WEBAPP          .
+  inc PIPEPROC        .
+  inc NETPROC         .
+  inc MEMORY          .
+  inc NIC             .
   **** define how to build a single policy! then add them into the initial configuration
   **** Q: where to find the policies? A: ibos_source/dKernel/access.h
   **** ibos_source/dKernel/access.cc (line 195 and down; shows who can
@@ -419,13 +430,6 @@ endfm
 mod KERNEL is
   **** A lot of the 'kernel' things are found above in 'KERNEL-POLICIES' instead
   inc KERNEL-POLICIES .
-  inc MSG-LIST        .
-  inc LABEL-LIST      .
-  inc WEBAPP          .
-  inc PIPEPROC        .
-  inc NETPROC         .
-  inc MEMORY          .
-  inc NIC             .
 
   var Att Att2    : AttributeSet .
   var Att3        : AttributeSet .
