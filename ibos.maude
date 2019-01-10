@@ -401,6 +401,16 @@ fmod KERNEL-POLICIES is inc SYS . inc BOOL-NO-BUILTIN . pr MSG . pr LABEL .
   eq [nwa] : webapp(N,(pi(webapp(N),L),WPIS)) = true [variant] .
  ceq [nwa2] : webapp(N,(pi(webapp(N'),L),WPIS)) = webapp(N,WPIS) if N ~ N' = false .
   eq [nwaf] : webapp(N,mtWPIS) = false .
+
+  op matching-procs : NetProcId WebAppId WebappProcInfoSet NetworkProcInfoSet -> Bool .
+  eq matching-procs(NI,WI,(pi(WI,L),WPIS),NPIS) = matching-procs1(NI,L,NPIS) or matching-procs(NI,WI,WPIS,NPIS) .
+ ceq matching-procs(NI,WI,(pi(WI',L),WPIS),NPIS) = matching-procs(NI,WI,WPIS,NPIS) if WI ~ WI' = false .
+  eq matching-procs(NI,WI,mtWPIS,NPIS) = false .
+
+  op matching-procs1 : NetProcId Label NetworkProcInfoSet -> Bool .
+  eq matching-procs1(NI,L,(pi(NI,L,L''),NPIS)) = true .
+ ceq matching-procs1(NI,L,(pi(NI',L',L''),NPIS)) = matching-procs1(NI,L,NPIS) if NI ~ NI' and L ~ L' = false .
+  eq matching-procs1(NI,L,mtNPIS) = false .
 endfm
 
 mod KERNEL is
