@@ -784,7 +784,7 @@ mod KERNEL is
    if L =/= L' .
 
   **** Made into a topmost rule from module KERNEL-POLICIES
- crl [new-url] :
+  rl [new-url] :
      { < kernel    |
            handledCurrently(kernelDo(msg(ui, webapp, MSG-NEW-URL, URL))) ,
            displayedTopBar(L),
@@ -811,8 +811,7 @@ mod KERNEL is
            URL(URL) ,
            loading(false) ,
            fromKernel(mt) ,
-           toKernel(mt) > Cnf }
-  if NewWA < 1056 .
+           toKernel(mt) > Cnf } .
 endm
 
 eof
